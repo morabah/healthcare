@@ -194,10 +194,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async (): Promise<void> => {
     setError(null);
     try {
+      // First clear user state from context
+      setUser(null);
+      setUserData(null);
+      
+      // Then sign out from Firebase
       await signOut(auth);
+      
+      // Clear any cached data
+      localStorage.removeItem('firebase:auth:user');
+      sessionStorage.clear();
+      
+      // Return successfully
+      console.log('User logged out successfully');
+      return Promise.resolve();
     } catch (err) {
       const errorMessage = handleAuthError(err);
       setError(errorMessage);
+      console.error('Logout error:', err);
       throw new Error(errorMessage);
     }
   };

@@ -3,19 +3,20 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { auth } from '@/lib/firebase/firebaseClient';
 import styles from './Navigation.module.css';
 
 export default function Navigation() {
-  const { user, logout, userData } = useAuth();
+  const { user, userData } = useAuth();
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+  // Direct logout handler with immediate redirect
+  const handleSignOut = () => {
+    // Force an immediate redirect to a special logout URL with a timestamp to prevent caching
+    window.location.replace(`/api/auth/logout?t=${Date.now()}`);
   };
 
   // Determine if the user is a doctor
@@ -63,7 +64,7 @@ export default function Navigation() {
                 <span className={styles.userEmail}>{user.email}</span>
               </div>
               <button 
-                onClick={handleLogout} 
+                onClick={handleSignOut} 
                 className={styles.logoutButton}
               >
                 Log Out
