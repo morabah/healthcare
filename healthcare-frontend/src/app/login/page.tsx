@@ -7,7 +7,7 @@ import { LoginForm } from '@/components';
 import styles from './login.module.css';
 import Image from 'next/image';
 
-// Login page component - Updated and synced with GitHub
+// Login page component - Main entry point to the application
 export default function LoginPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -31,8 +31,12 @@ export default function LoginPage() {
             priority
           />
           <h1 className={styles.title}>Healthcare Portal</h1>
+          <p className={styles.subtitle}>Secure access to your healthcare management system</p>
         </div>
         <LoginForm />
+        <div className={styles.footer}>
+          <p> {new Date().getFullYear()} Healthcare Portal. All rights reserved.</p>
+        </div>
       </div>
     </div>
   );

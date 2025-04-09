@@ -75,7 +75,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         'auth/weak-password': 'Password should be at least 6 characters.',
         'auth/network-request-failed': 'Network error. Please check your connection.',
         'auth/too-many-requests': 'Too many unsuccessful login attempts. Please try again later.',
-        'auth/popup-closed-by-user': 'Google sign-in was cancelled.',
+        'auth/popup-closed-by-user': 'Google sign-in was cancelled. Please try again.',
+        'auth/cancelled-popup-request': 'The authentication popup was cancelled or blocked by the browser.',
+        'auth/popup-blocked': 'The authentication popup was blocked by the browser. Please allow popups for this site.',
+        'auth/unauthorized-domain': 'This domain is not authorized for Google sign-in.',
       };
       
       return errorMessages[error.code] || error.message || 'An unexpected authentication error occurred.';
@@ -121,16 +124,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setError(null);
     try {
       const provider = new GoogleAuthProvider();
+      // Add scopes if needed
+      provider.addScope('profile');
+      provider.addScope('email');
+      
+      // Set custom parameters for better UX
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
       await signInWithPopup(auth, provider);
     } catch (err) {
-      const errorMessage = handleAuthError(err);
+      let errorMessage: string;
       
       // Special handling for unauthorized domain error
       if (err instanceof FirebaseError && err.code === 'auth/unauthorized-domain') {
         const currentDomain = window.location.hostname;
-        setError(`This domain (${currentDomain}) is not authorized for Google sign-in. Please add it to your Firebase console under Authentication > Settings > Authorized domains.`);
+        errorMessage = `This domain (${currentDomain}) is not authorized for Google sign-in. Please add it to your Firebase console under Authentication > Settings > Authorized domains.`;
+        setError(errorMessage);
         console.error(`Firebase Google Auth Error: Domain ${currentDomain} not authorized. Add it to Firebase Console: Authentication > Settings > Authorized domains.`);
       } else {
+        errorMessage = handleAuthError(err);
         setError(errorMessage);
       }
       

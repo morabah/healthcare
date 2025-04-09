@@ -67,9 +67,13 @@ export default function LoginForm() {
       await signInWithGoogle();
     } catch (err) {
       // Error is already set in the auth context
-      // Check if the error contains "unauthorized-domain"
-      if (err instanceof Error && err.message.includes('unauthorized-domain')) {
-        setError("Google sign-in is not available on this domain. Please use email/password login instead, or contact the administrator to enable Google sign-in.");
+      // Check for specific error types
+      if (err instanceof Error) {
+        if (err.message.includes('popup-blocked') || err.message.includes('popup')) {
+          setError("The authentication popup was blocked by your browser. Please allow popups for this site and try again.");
+        } else if (err.message.includes('unauthorized-domain')) {
+          setError("Google sign-in is not available on this domain. Please use email/password login instead, or contact the administrator to enable Google sign-in.");
+        }
       }
     } finally {
       setLoading(false);

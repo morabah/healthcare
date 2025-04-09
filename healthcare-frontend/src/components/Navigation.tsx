@@ -8,6 +8,7 @@ import styles from './Navigation.module.css';
 
 export default function Navigation() {
   const { user, signOut } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   const handleLogout = async () => {
     try {
@@ -31,10 +32,26 @@ export default function Navigation() {
           <span className={styles.logoText}>Healthcare</span>
         </Link>
 
-        <div className={styles.navLinks}>
-          <Link href="/" className={styles.navLink}>Home</Link>
-          {/* Add more navigation links as needed */}
-        </div>
+        {user && (
+          <>
+            <div className={`${styles.navLinks} ${isMenuOpen ? styles.navLinksOpen : ''}`}>
+              <Link href="/" className={styles.navLink}>Dashboard</Link>
+              <Link href="/profile" className={styles.navLink}>Profile</Link>
+              <Link href="/appointments" className={styles.navLink}>Appointments</Link>
+              <Link href="/records" className={styles.navLink}>Medical Records</Link>
+            </div>
+
+            <button 
+              className={styles.mobileMenuButton} 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              <span className={styles.menuBar}></span>
+              <span className={styles.menuBar}></span>
+              <span className={styles.menuBar}></span>
+            </button>
+          </>
+        )}
 
         <div className={styles.authContainer}>
           {user ? (
