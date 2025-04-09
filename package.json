@@ -1,0 +1,14 @@
+{
+  "name": "healthcare",
+  "version": "1.0.0",
+  "scripts": {
+    "start:dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd healthcare-backend && npm run start:dev",
+    "start:frontend": "cd healthcare-frontend && npm run dev",
+    "build": "concurrently \"cd healthcare-backend && npm run build\" \"cd healthcare-frontend && npm run build\"",
+    "lint": "concurrently \"cd healthcare-backend && npm run lint\" \"cd healthcare-frontend && npm run lint\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
