@@ -1,198 +1,246 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { ProtectedRoute } from '@/components';
 import Navigation from '@/components/Navigation';
-import styles from './doctor-dashboard.module.css';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/firebaseClient';
+import { Calendar, Bell, UserCircle, Clock, ChevronRight } from 'lucide-react';
+import styles from './doctor-dashboard.module.css';
+import {
+  WelcomeTitle,
+  WelcomeSubtitle,
+  StatCardIcon,
+  QuickActionItem,
+  QuickActionContent,
+  QuickActionText,
+  QuickActionTitle,
+  QuickActionDescription,
+  ScheduleContent,
+  ScheduleTitle,
+  ScheduleDescription,
+} from '@/styles/doctor-dashboard.styled';
 
 interface PatientSummary {
   id: string;
   name: string;
-  email: string | null;
-  lastVisit: string | null;
-  upcomingAppointment: string | null;
+  email: string;
+  lastVisit?: string;
+  upcomingAppointment?: string;
 }
 
 export default function DoctorDashboard() {
-  const router = useRouter();
   const { user, userData } = useAuth();
+  const router = useRouter();
   const [patients, setPatients] = useState<PatientSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch patients data
   useEffect(() => {
     const fetchPatients = async () => {
-      if (!user || userData?.role !== 'doctor') {
-        return;
-      }
-
       try {
-        setIsLoading(true);
-        // Get all users with role 'patient'
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('role', '==', 'patient'));
+        const q = query(
+          collection(db, 'users'),
+          where('role', '==', 'patient')
+        );
         const querySnapshot = await getDocs(q);
-        
-        const patientsList: PatientSummary[] = [];
-        
+        const patientData: PatientSummary[] = [];
         querySnapshot.forEach((doc) => {
-          const userData = doc.data();
-          patientsList.push({
+          patientData.push({
             id: doc.id,
-            name: userData.displayName || 'Unknown',
-            email: userData.email || null,
-            lastVisit: null, // This would come from appointments collection
-            upcomingAppointment: null // This would come from appointments collection
-          });
+            ...doc.data()
+          } as PatientSummary);
         });
-        
-        setPatients(patientsList);
+        setPatients(patientData);
+        setIsLoading(false);
       } catch (err) {
-        console.error('Error fetching patients:', err);
-        setError('Failed to load patients data. Please try again later.');
-      } finally {
+        setError('Failed to fetch patients');
         setIsLoading(false);
       }
     };
 
-    fetchPatients();
-  }, [user, userData]);
-
-  // Redirect if user is not a doctor
-  useEffect(() => {
-    if (userData && userData.role !== 'doctor') {
-      router.push('/profile');
+    if (userData?.role !== 'doctor') {
+      router.push('/');
+    } else {
+      fetchPatients();
     }
   }, [userData, router]);
 
-  const handleViewPatient = (patientId: string) => {
-    router.push(`/patient/${patientId}`);
-  };
+  if (isLoading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner}></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.errorContainer}>
+        <div className={styles.errorIcon}>⚠️</div>
+        <h2 className={styles.errorTitle}>{error}</h2>
+        <button 
+          className={styles.errorButton}
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const lastName = userData?.displayName?.split(' ')[1] || 'LastName2';
 
   return (
     <ProtectedRoute>
-      <div className={styles.dashboardPage}>
-        <Navigation />
-        <main className={styles.main}>
-          <div className={styles.container}>
-            <div className={styles.header}>
-              <h1 className={styles.title}>Doctor Dashboard</h1>
-              <p className={styles.welcome}>Welcome, Dr. {userData?.displayName?.split(' ')[0]}</p>
-            </div>
+      <div className={styles.dashboardContainer}>
+        <div className={styles.navigationContainer}>
+          <Navigation />
+        </div>
+        <div className={styles.contentContainer}>
+          {/* Welcome Section */}
+          <div className={styles.welcomeSection}>
+            <WelcomeTitle>
+              Welcome, Dr. {lastName}!
+            </WelcomeTitle>
+            <WelcomeSubtitle>
+              Manage your appointments and patient information from your professional dashboard.
+            </WelcomeSubtitle>
+          </div>
 
-            <div className={styles.statsContainer}>
-              <div className={styles.statCard}>
-                <h3>Total Patients</h3>
-                <p className={styles.statNumber}>{patients.length}</p>
-              </div>
-              <div className={styles.statCard}>
-                <h3>Today's Appointments</h3>
-                <p className={styles.statNumber}>0</p>
-              </div>
-              <div className={styles.statCard}>
-                <h3>Pending Reports</h3>
-                <p className={styles.statNumber}>0</p>
-              </div>
-            </div>
-
-            <div className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <h2>My Patients</h2>
-                <button className={styles.addButton}>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-                    <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                  Add Patient
+          {/* Stats Cards */}
+          <div className={styles.statsGrid}>
+            {/* Today's Appointments */}
+            <div className={styles.statCard}>
+              <div className={styles.statCardContent}>
+                <h2 className={styles.statCardTitle}>Today's Appointments</h2>
+                <p className={styles.statCardValue}>0</p>
+                <button className={`${styles.statCardButton} ${styles.blueButton}`}>
+                  View Schedule
                 </button>
               </div>
-
-              {isLoading ? (
-                <div className={styles.loadingContainer}>
-                  <div className={styles.spinner}></div>
-                  <p>Loading patients...</p>
-                </div>
-              ) : error ? (
-                <div className={styles.errorContainer}>
-                  <p>{error}</p>
-                  <button 
-                    onClick={() => window.location.reload()} 
-                    className={styles.retryButton}
-                  >
-                    Retry
-                  </button>
-                </div>
-              ) : patients.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
-                    <path d="M9 17a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-10a6 6 0 1 0 0 12A6 6 0 0 0 9 7Zm10 4a3 3 0 0 1 2.83 4H18a1 1 0 0 0 0 2h4v-1a5 5 0 0 0-10 0v1h2a1 1 0 0 0 0-2h-1.17A3 3 0 0 1 19 11Z"/>
-                  </svg>
-                  <h3>No patients yet</h3>
-                  <p>Start by adding your first patient</p>
-                  <button className={styles.addButton}>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-                      <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                    Add Patient
-                  </button>
-                </div>
-              ) : (
-                <div className={styles.tableContainer}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Last Visit</th>
-                        <th>Next Appointment</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {patients.map((patient) => (
-                        <tr key={patient.id}>
-                          <td>{patient.name}</td>
-                          <td>{patient.email || 'N/A'}</td>
-                          <td>{patient.lastVisit || 'No visits'}</td>
-                          <td>{patient.upcomingAppointment || 'None scheduled'}</td>
-                          <td>
-                            <button 
-                              onClick={() => handleViewPatient(patient.id)}
-                              className={styles.actionButton}
-                            >
-                              View
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <StatCardIcon color="#3b82f6">
+                <Calendar size={20} />
+              </StatCardIcon>
             </div>
 
-            <div className={styles.section}>
-              <h2>Upcoming Appointments</h2>
-              <div className={styles.emptyState}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
-                  <path d="M19 4h-1V3a1 1 0 0 0-2 0v1H8V3a1 1 0 0 0-2 0v1H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3zm1 15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-7h16v7zm0-9H4V7a1 1 0 0 1 1-1h1v1a1 1 0 0 0 2 0V6h8v1a1 1 0 0 0 2 0V6h1a1 1 0 0 1 1 1v3z"/>
-                </svg>
-                <h3>No upcoming appointments</h3>
-                <p>Schedule appointments with your patients</p>
-                <button className={styles.addButton}>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-                    <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                  Schedule Appointment
+            {/* Upcoming Appointments */}
+            <div className={styles.statCard}>
+              <div className={styles.statCardContent}>
+                <h2 className={styles.statCardTitle}>Upcoming Appointments</h2>
+                <p className={styles.statCardValue}>3</p>
+                <button className={`${styles.statCardButton} ${styles.greenButton}`}>
+                  View Appointments
                 </button>
               </div>
+              <StatCardIcon color="#10b981">
+                <Calendar size={20} />
+              </StatCardIcon>
+            </div>
+
+            {/* Notifications */}
+            <div className={styles.statCard}>
+              <div className={styles.statCardContent}>
+                <h2 className={styles.statCardTitle}>Notifications</h2>
+                <p className={styles.statCardValue}>2</p>
+                <button className={`${styles.statCardButton} ${styles.yellowButton}`}>
+                  View Notifications
+                </button>
+              </div>
+              <StatCardIcon color="#f59e0b">
+                <Bell size={20} />
+              </StatCardIcon>
+            </div>
+
+            {/* Profile Management */}
+            <div className={styles.statCard}>
+              <div className={styles.statCardContent}>
+                <h2 className={styles.statCardTitle}>Profile Management</h2>
+                <p className={styles.statCardValue}>
+                  <UserCircle size={28} />
+                </p>
+                <button className={`${styles.statCardButton} ${styles.cyanButton}`}>
+                  Manage Profile
+                </button>
+              </div>
+              <StatCardIcon color="#06b6d4">
+                <UserCircle size={20} />
+              </StatCardIcon>
             </div>
           </div>
-        </main>
+
+          {/* Quick Actions and Today's Schedule */}
+          <div className={styles.panelsGrid}>
+            {/* Quick Actions */}
+            <div className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <h2 className={styles.panelTitle}>Quick Actions</h2>
+              </div>
+              <div className={styles.panelContent}>
+                <QuickActionItem>
+                  <QuickActionContent>
+                    <UserCircle className={styles.quickActionIcon} color="#3b82f6" size={18} />
+                    <QuickActionText>
+                      <QuickActionTitle>Update Profile</QuickActionTitle>
+                      <QuickActionDescription>Update your professional information</QuickActionDescription>
+                    </QuickActionText>
+                  </QuickActionContent>
+                  <ChevronRight size={18} color="#9ca3af" />
+                </QuickActionItem>
+                
+                <QuickActionItem>
+                  <QuickActionContent>
+                    <Clock className={styles.quickActionIcon} color="#10b981" size={18} />
+                    <QuickActionText>
+                      <QuickActionTitle>Manage Availability</QuickActionTitle>
+                      <QuickActionDescription>Set your consultation hours</QuickActionDescription>
+                    </QuickActionText>
+                  </QuickActionContent>
+                  <ChevronRight size={18} color="#9ca3af" />
+                </QuickActionItem>
+                
+                <QuickActionItem>
+                  <QuickActionContent>
+                    <Calendar className={styles.quickActionIcon} color="#3b82f6" size={18} />
+                    <QuickActionText>
+                      <QuickActionTitle>Manage Appointments</QuickActionTitle>
+                      <QuickActionDescription>View and manage your appointments</QuickActionDescription>
+                    </QuickActionText>
+                  </QuickActionContent>
+                  <ChevronRight size={18} color="#9ca3af" />
+                </QuickActionItem>
+                
+                <QuickActionItem>
+                  <QuickActionContent>
+                    <Bell className={styles.quickActionIcon} color="#f59e0b" size={18} />
+                    <QuickActionText>
+                      <QuickActionTitle>View Notifications</QuickActionTitle>
+                      <QuickActionDescription>Check your latest notifications</QuickActionDescription>
+                    </QuickActionText>
+                  </QuickActionContent>
+                  <ChevronRight size={18} color="#9ca3af" />
+                </QuickActionItem>
+              </div>
+            </div>
+
+            {/* Today's Schedule */}
+            <div className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <h2 className={styles.panelTitle}>Today's Schedule</h2>
+              </div>
+              <ScheduleContent>
+                <Calendar size={48} color="#9ca3af" className={styles.scheduleIcon} />
+                <ScheduleTitle>No appointments scheduled for today</ScheduleTitle>
+                <ScheduleDescription>Your daily appointments will appear here.</ScheduleDescription>
+                <button className={styles.scheduleButton}>
+                  Manage Schedule
+                </button>
+              </ScheduleContent>
+            </div>
+          </div>
+        </div>
       </div>
     </ProtectedRoute>
   );
