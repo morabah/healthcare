@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { UserCircle } from 'lucide-react';
+import { User } from '@/components/icons/CustomIcons';
 import styles from './DoctorProfileForm.module.css';
 import { doctorService } from '@/lib/api';
 import { ApiTypes } from '@/lib/api';
@@ -158,7 +158,7 @@ export default function DoctorProfileForm() {
               />
             ) : (
               <div className={styles.defaultProfile}>
-                <UserCircle size={80} />
+                <User size={80} />
                 <p className={styles.defaultProfileText}>Default Profile</p>
                 <p className={styles.doctorName}>
                   Dr. {profile.lastName || 'LastName'}

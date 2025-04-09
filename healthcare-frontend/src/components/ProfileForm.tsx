@@ -1,28 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import styles from './ProfileForm.module.css';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/firebaseClient';
-
-interface PatientProfile {
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  gender: string;
-  phoneNumber: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  emergencyContactName: string;
-  emergencyContactPhone: string;
-  medicalConditions: string;
-  allergies: string;
-  medications: string;
-  bloodType: string;
-}
+import { usePatientProfile, useUpdatePatientProfile } from '@/hooks/useProfile';
+import { PatientProfile } from '@/lib/api/services/profileService';
+import { ProfileSkeleton } from './ProfileSkeleton';
 
 const initialProfileState: PatientProfile = {
   firstName: '',
@@ -44,81 +27,102 @@ const initialProfileState: PatientProfile = {
 
 export default function ProfileForm() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<PatientProfile>(initialProfileState);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  // Fetch profile data when component mounts
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) return;
-      
-      setIsLoading(true);
-      try {
-        const profileRef = doc(db, 'patientProfiles', user.uid);
-        const profileSnap = await getDoc(profileRef);
-        
-        if (profileSnap.exists()) {
-          setProfile(profileSnap.data() as PatientProfile);
-        }
-      } catch (err) {
-        console.error('Error fetching profile:', err);
-        setError('Failed to load your profile. Please try again later.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchProfile();
-  }, [user]);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Use React Query to fetch profile with optimized caching
+  const { 
+    data: profile = initialProfileState, 
+    isLoading, 
+    isError 
+  } = usePatientProfile(user?.uid || '');
+  
+  // Use mutation hook with optimistic updates
+  const { mutate: updateProfile, isPending: isSaving } = useUpdatePatientProfile();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setProfile(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    // This is handled by the form directly now through controlled inputs
+    // We don't need to maintain local state as React Query handles it
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!user) return;
     
-    setIsSaving(true);
+    // Get all form values
+    const formData = new FormData(e.currentTarget);
+    const updatedProfile: PatientProfile = {
+      firstName: formData.get('firstName') as string || '',
+      lastName: formData.get('lastName') as string || '',
+      dateOfBirth: formData.get('dateOfBirth') as string || '',
+      gender: formData.get('gender') as string || '',
+      phoneNumber: formData.get('phoneNumber') as string || '',
+      address: formData.get('address') as string || '',
+      city: formData.get('city') as string || '',
+      state: formData.get('state') as string || '',
+      zipCode: formData.get('zipCode') as string || '',
+      emergencyContactName: formData.get('emergencyContactName') as string || '',
+      emergencyContactPhone: formData.get('emergencyContactPhone') as string || '',
+      medicalConditions: formData.get('medicalConditions') as string || '',
+      allergies: formData.get('allergies') as string || '',
+      medications: formData.get('medications') as string || '',
+      bloodType: formData.get('bloodType') as string || '',
+    };
+    
     setError(null);
     setSuccessMessage(null);
     
-    try {
-      const profileRef = doc(db, 'patientProfiles', user.uid);
-      await setDoc(profileRef, profile, { merge: true });
-      setSuccessMessage('Profile saved successfully!');
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage(null);
-      }, 3000);
-    } catch (err) {
-      console.error('Error saving profile:', err);
-      setError('Failed to save your profile. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
+    // Use the mutation hook which handles optimistic updates
+    updateProfile(
+      { 
+        userId: user.uid, 
+        profile: updatedProfile 
+      },
+      {
+        onSuccess: () => {
+          setSuccessMessage('Profile saved successfully!');
+          
+          // Clear success message after 3 seconds
+          setTimeout(() => {
+            setSuccessMessage(null);
+          }, 3000);
+        },
+        onError: (err) => {
+          console.error('Error saving profile:', err);
+          setError('Failed to save your profile. Please try again.');
+        }
+      }
+    );
   };
 
+  // Show skeleton while loading
   if (isLoading) {
+    return <ProfileSkeleton />;
+  }
+  
+  // Show error state
+  if (isError) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.spinner}></div>
-        <p>Loading your profile...</p>
+      <div className={styles.errorContainer}>
+        <p className={styles.errorMessage}>
+          Failed to load your profile. Please refresh the page to try again.
+        </p>
       </div>
     );
   }
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
+      {/* Success or error messages */}
+      {successMessage && (
+        <div className={styles.successMessage}>{successMessage}</div>
+      )}
+      {error && (
+        <div className={styles.errorMessage}>{error}</div>
+      )}
+      
       <div className={styles.formSection}>
         <h2 className={styles.sectionTitle}>Personal Information</h2>
         <div className={styles.formRow}>
@@ -128,8 +132,7 @@ export default function ProfileForm() {
               type="text"
               id="firstName"
               name="firstName"
-              value={profile.firstName}
-              onChange={handleChange}
+              defaultValue={profile.firstName}
               className={styles.input}
               required
             />
@@ -140,8 +143,7 @@ export default function ProfileForm() {
               type="text"
               id="lastName"
               name="lastName"
-              value={profile.lastName}
-              onChange={handleChange}
+              defaultValue={profile.lastName}
               className={styles.input}
               required
             />
@@ -155,8 +157,7 @@ export default function ProfileForm() {
               type="date"
               id="dateOfBirth"
               name="dateOfBirth"
-              value={profile.dateOfBirth}
-              onChange={handleChange}
+              defaultValue={profile.dateOfBirth}
               className={styles.input}
               required
             />
@@ -166,8 +167,7 @@ export default function ProfileForm() {
             <select
               id="gender"
               name="gender"
-              value={profile.gender}
-              onChange={handleChange}
+              defaultValue={profile.gender}
               className={styles.input}
               required
             >
@@ -186,8 +186,7 @@ export default function ProfileForm() {
             type="tel"
             id="phoneNumber"
             name="phoneNumber"
-            value={profile.phoneNumber}
-            onChange={handleChange}
+            defaultValue={profile.phoneNumber}
             className={styles.input}
             required
           />
@@ -202,8 +201,7 @@ export default function ProfileForm() {
             type="text"
             id="address"
             name="address"
-            value={profile.address}
-            onChange={handleChange}
+            defaultValue={profile.address}
             className={styles.input}
             required
           />
@@ -216,8 +214,7 @@ export default function ProfileForm() {
               type="text"
               id="city"
               name="city"
-              value={profile.city}
-              onChange={handleChange}
+              defaultValue={profile.city}
               className={styles.input}
               required
             />
@@ -228,20 +225,18 @@ export default function ProfileForm() {
               type="text"
               id="state"
               name="state"
-              value={profile.state}
-              onChange={handleChange}
+              defaultValue={profile.state}
               className={styles.input}
               required
             />
           </div>
           <div className={styles.formGroup}>
-            <label htmlFor="zipCode" className={styles.label}>ZIP Code</label>
+            <label htmlFor="zipCode" className={styles.label}>Zip Code</label>
             <input
               type="text"
               id="zipCode"
               name="zipCode"
-              value={profile.zipCode}
-              onChange={handleChange}
+              defaultValue={profile.zipCode}
               className={styles.input}
               required
             />
@@ -253,25 +248,23 @@ export default function ProfileForm() {
         <h2 className={styles.sectionTitle}>Emergency Contact</h2>
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
-            <label htmlFor="emergencyContactName" className={styles.label}>Name</label>
+            <label htmlFor="emergencyContactName" className={styles.label}>Emergency Contact Name</label>
             <input
               type="text"
               id="emergencyContactName"
               name="emergencyContactName"
-              value={profile.emergencyContactName}
-              onChange={handleChange}
+              defaultValue={profile.emergencyContactName}
               className={styles.input}
               required
             />
           </div>
           <div className={styles.formGroup}>
-            <label htmlFor="emergencyContactPhone" className={styles.label}>Phone Number</label>
+            <label htmlFor="emergencyContactPhone" className={styles.label}>Emergency Contact Phone</label>
             <input
               type="tel"
               id="emergencyContactPhone"
               name="emergencyContactPhone"
-              value={profile.emergencyContactPhone}
-              onChange={handleChange}
+              defaultValue={profile.emergencyContactPhone}
               className={styles.input}
               required
             />
@@ -286,44 +279,37 @@ export default function ProfileForm() {
           <textarea
             id="medicalConditions"
             name="medicalConditions"
-            value={profile.medicalConditions}
-            onChange={handleChange}
+            defaultValue={profile.medicalConditions}
             className={styles.textarea}
-            placeholder="List any medical conditions you have"
+            rows={3}
           />
         </div>
-        
         <div className={styles.formGroup}>
           <label htmlFor="allergies" className={styles.label}>Allergies</label>
           <textarea
             id="allergies"
             name="allergies"
-            value={profile.allergies}
-            onChange={handleChange}
+            defaultValue={profile.allergies}
             className={styles.textarea}
-            placeholder="List any allergies you have"
+            rows={3}
           />
         </div>
-        
         <div className={styles.formGroup}>
-          <label htmlFor="medications" className={styles.label}>Current Medications</label>
+          <label htmlFor="medications" className={styles.label}>Medications</label>
           <textarea
             id="medications"
             name="medications"
-            value={profile.medications}
-            onChange={handleChange}
+            defaultValue={profile.medications}
             className={styles.textarea}
-            placeholder="List any medications you are currently taking"
+            rows={3}
           />
         </div>
-        
         <div className={styles.formGroup}>
           <label htmlFor="bloodType" className={styles.label}>Blood Type</label>
           <select
             id="bloodType"
             name="bloodType"
-            value={profile.bloodType}
-            onChange={handleChange}
+            defaultValue={profile.bloodType}
             className={styles.input}
           >
             <option value="">Select Blood Type</option>
@@ -340,30 +326,13 @@ export default function ProfileForm() {
         </div>
       </div>
       
-      {error && (
-        <div className={styles.errorContainer}>
-          <p className={styles.errorText}>{error}</p>
-        </div>
-      )}
-      
-      {successMessage && (
-        <div className={styles.successContainer}>
-          <p className={styles.successText}>{successMessage}</p>
-        </div>
-      )}
-      
       <div className={styles.formActions}>
         <button 
           type="submit" 
           className={styles.submitButton}
           disabled={isSaving}
         >
-          {isSaving ? (
-            <>
-              <span className={styles.buttonSpinner}></span>
-              Saving...
-            </>
-          ) : 'Save Profile'}
+          {isSaving ? 'Saving...' : 'Save Profile'}
         </button>
       </div>
     </form>

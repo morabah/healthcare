@@ -8,7 +8,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/firebaseClient';
-import { Calendar, Bell, UserCircle, Clock, ChevronRight } from 'lucide-react';
 import styles from './doctor-dashboard.module.css';
 import { createLogger } from '@/lib/logger';
 
@@ -152,7 +151,7 @@ export default function DoctorDashboard() {
                 </Link>
               </div>
               <div className={styles.statCardIcon}>
-                <Calendar size={24} color="#3b82f6" />
+                📅
               </div>
             </div>
 
@@ -166,7 +165,7 @@ export default function DoctorDashboard() {
                 </Link>
               </div>
               <div className={styles.statCardIcon}>
-                <Calendar size={24} color="#10b981" />
+                📆
               </div>
             </div>
 
@@ -180,7 +179,7 @@ export default function DoctorDashboard() {
                 </Link>
               </div>
               <div className={styles.statCardIcon}>
-                <Bell size={24} color="#f59e0b" />
+                🔔
               </div>
             </div>
 
@@ -189,14 +188,14 @@ export default function DoctorDashboard() {
               <div className={styles.statCardContent}>
                 <h2 className={styles.statCardTitle}>Profile Management</h2>
                 <p className={styles.statCardValue}>
-                  <UserCircle size={28} />
+                  👨‍⚕️
                 </p>
                 <Link href="/doctor-profile" className={styles.statCardButton}>
                   Manage Profile
                 </Link>
               </div>
               <div className={styles.statCardIcon}>
-                <UserCircle size={24} color="#06b6d4" />
+                👨‍⚕️
               </div>
             </div>
           </div>
@@ -211,46 +210,46 @@ export default function DoctorDashboard() {
               <div className={styles.panelContent}>
                 <div className={styles.quickActionItem} onClick={() => router.push('/doctor-profile')}>
                   <div className={styles.quickActionContent}>
-                    <UserCircle className={styles.quickActionIcon} color="#3b82f6" size={18} />
+                    👨‍⚕️
                     <div className={styles.quickActionText}>
                       <h3 className={styles.quickActionTitle}>Update Profile</h3>
                       <p className={styles.quickActionDescription}>Update your professional information</p>
                     </div>
                   </div>
-                  <ChevronRight size={18} color="#9ca3af" />
+                  ➡️
                 </div>
                 
                 <div className={styles.quickActionItem} onClick={() => router.push('/doctor-availability')}>
                   <div className={styles.quickActionContent}>
-                    <Clock className={styles.quickActionIcon} color="#10b981" size={18} />
+                    🕒️
                     <div className={styles.quickActionText}>
                       <h3 className={styles.quickActionTitle}>Manage Availability</h3>
                       <p className={styles.quickActionDescription}>Set your consultation hours</p>
                     </div>
                   </div>
-                  <ChevronRight size={18} color="#9ca3af" />
+                  ➡️
                 </div>
                 
                 <div className={styles.quickActionItem} onClick={() => router.push('/doctor-appointments')}>
                   <div className={styles.quickActionContent}>
-                    <Calendar className={styles.quickActionIcon} color="#3b82f6" size={18} />
+                    📅
                     <div className={styles.quickActionText}>
                       <h3 className={styles.quickActionTitle}>Manage Appointments</h3>
                       <p className={styles.quickActionDescription}>View and manage your appointments</p>
                     </div>
                   </div>
-                  <ChevronRight size={18} color="#9ca3af" />
+                  ➡️
                 </div>
                 
                 <div className={styles.quickActionItem} onClick={() => router.push('/doctor-notifications')}>
                   <div className={styles.quickActionContent}>
-                    <Bell className={styles.quickActionIcon} color="#f59e0b" size={18} />
+                    🔔
                     <div className={styles.quickActionText}>
                       <h3 className={styles.quickActionTitle}>View Notifications</h3>
                       <p className={styles.quickActionDescription}>Check your latest notifications</p>
                     </div>
                   </div>
-                  <ChevronRight size={18} color="#9ca3af" />
+                  ➡️
                 </div>
               </div>
             </div>
@@ -261,7 +260,7 @@ export default function DoctorDashboard() {
                 <h2 className={styles.panelTitle}>Today's Schedule</h2>
               </div>
               <div className={styles.scheduleContent}>
-                <Calendar size={48} color="#9ca3af" className={styles.scheduleIcon} />
+                📅
                 <h3 className={styles.scheduleTitle}>No appointments scheduled for today</h3>
                 <p className={styles.scheduleDescription}>Your daily appointments will appear here.</p>
                 <Link href="/doctor-schedule" className={styles.scheduleButton}>

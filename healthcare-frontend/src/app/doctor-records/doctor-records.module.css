@@ -1,0 +1,203 @@
+.recordsPage {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f8fa;
+}
+
+.main {
+  flex: 1;
+  padding: 2rem;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.title {
+  font-size: 2rem;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.description {
+  color: #7f8c8d;
+  margin-bottom: 2rem;
+}
+
+.filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filterGroup label {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.filterSelect {
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #dfe6e9;
+  background-color: white;
+  min-width: 200px;
+}
+
+.createRecordButton {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.createRecordButton:hover {
+  background-color: #2980b9;
+}
+
+.recordsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.recordCard {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.recordCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.recordHeader {
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #ecf0f1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.recordHeader h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #2c3e50;
+}
+
+.recordDate {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+}
+
+.patientInfo {
+  padding: 0.75rem 1.5rem;
+  background-color: rgba(52, 152, 219, 0.1);
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.patientName {
+  font-weight: 500;
+  color: #3498db;
+}
+
+.recordContent {
+  padding: 1.5rem;
+}
+
+.recordContent p {
+  margin: 0;
+  color: #34495e;
+  line-height: 1.6;
+}
+
+.recordActions {
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  border-top: 1px solid #ecf0f1;
+  flex-wrap: wrap;
+}
+
+.viewButton {
+  background-color: transparent;
+  color: #3498db;
+  border: 1px solid #3498db;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.viewButton:hover {
+  background-color: #3498db;
+  color: white;
+}
+
+.editButton {
+  background-color: #f39c12;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.editButton:hover {
+  background-color: #d35400;
+}
+
+.shareButton {
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.shareButton:hover {
+  background-color: #27ae60;
+}
+
+@media (max-width: 768px) {
+  .main {
+    padding: 1rem;
+  }
+  
+  .recordsList {
+    grid-template-columns: 1fr;
+  }
+  
+  .filters {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

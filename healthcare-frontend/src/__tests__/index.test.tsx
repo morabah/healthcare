@@ -1,15 +1,32 @@
 /// <reference types="@testing-library/jest-dom" />
 
+import React from 'react';
 import { render, screen } from '@testing-library/react';
-import Page from '@/app/page'; // Import the Page component from src/app
+import Home from '@/app/page';
 
-describe('Page', () => {
-  it('renders edit instruction text', () => {
-    render(<Page />);
+// Mock the auth context
+jest.mock('@/context/AuthContext', () => ({
+  useAuth: jest.fn(() => ({
+    user: null,
+    userData: null,
+  })),
+}));
 
-    // Find an element containing the specific text (case-insensitive)
-    const instructionElement = screen.getByText(/Get started by editing/i);
+// Mock the router
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+    prefetch: jest.fn(),
+  })),
+  useSearchParams: jest.fn(() => null),
+}));
 
-    expect(instructionElement).toBeInTheDocument();
+describe('Home page', () => {
+  it('renders healthcare content', () => {
+    render(<Home />);
+    
+    // Check if the element exists
+    const element = screen.getByText(/Healthcare Platform/i);
+    expect(element).toBeDefined();
   });
 });

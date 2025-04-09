@@ -14,7 +14,7 @@ export default function LoginPage() {
   const { user, userData } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const signedOut = searchParams.get('signedOut');
+  const signedOut = searchParams?.get('signedOut') || '';
   const [processingSignOut, setProcessingSignOut] = useState(false);
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   

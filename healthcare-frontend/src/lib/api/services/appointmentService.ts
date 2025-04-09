@@ -36,155 +36,159 @@ const CACHE_TTL = {
  * Service for appointment-related API endpoints with optimized performance
  */
 export class AppointmentService extends BaseApiService<Appointment> {
+  private apiClient: any;
+  private hybridStorage: any;
   private db: Firestore;
   private lastDocumentSnapshot: Record<string, QueryDocumentSnapshot | null> = {};
   
   constructor() {
     super('appointments');
+    this.apiClient = apiClient;
+    this.hybridStorage = hybridStorage;
     this.db = db;
   }
 
   /**
-   * Get appointments by doctor ID with hybrid caching and optimized queries
+   * Get all appointments for a doctor by ID with optimized performance
    */
   async getByDoctorId(
     doctorId: string, 
     status?: string, 
     page = 1, 
-    limit = 10,
-    forceRefresh = false
-  ): Promise<PaginatedResponse<Appointment> | null> {
-    // Generate cache key based on parameters
+    limit = 10
+  ): Promise<PaginatedResponse<Appointment>> {
+    // Try to get from cache first to improve performance
     const cacheKey = `doctor_appointments_${doctorId}_${status || 'all'}_${page}_${limit}`;
+    const cachedData = await this.hybridStorage.get(cacheKey) as PaginatedResponse<Appointment> | null;
     
-    // Check hybrid cache first unless force refresh is requested
-    if (!forceRefresh) {
-      const cachedData = await hybridStorage.get<PaginatedResponse<Appointment>>(cacheKey);
-      if (cachedData) {
-        console.log('Using cached appointment data');
-        return cachedData;
-      }
+    if (cachedData) {
+      console.log('Using cached doctor appointments data');
+      return cachedData;
     }
     
+    // Set a timeout for the API request to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // Reduced timeout
+    
     try {
-      // Add request timeout and cancelation handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      // Try API first with timeout
+      const response = await this.apiCall<PaginatedResponse<Appointment>>(`/appointments/doctor/${doctorId}`, {
+        params: { status, page, limit },
+        signal: controller.signal
+      });
       
-      const response: AxiosResponse<PaginatedResponse<Appointment>> = 
-        await apiClient.get(`/appointments/doctor/${doctorId}`, {
-          params: { status, page, limit },
-          signal: controller.signal
-        });
-      
-      // Clear timeout
       clearTimeout(timeoutId);
       
-      // Cache successful response with appropriate TTL
-      const ttl = page === 1 ? CACHE_TTL.MEDIUM : CACHE_TTL.SHORT;
-      await hybridStorage.set(cacheKey, response.data, ttl);
+      // Cache successful response with a medium TTL
+      await this.hybridStorage.set(cacheKey, response, 'MEDIUM');
+      return response;
       
-      return response.data;
     } catch (error) {
-      console.log('API error:', error);
+      // Clear the timeout if it hasn't fired yet
+      clearTimeout(timeoutId);
       
-      // If API fails or returns 404, fall back to Firebase if enabled
-      if (USE_FIREBASE_FALLBACK) {
+      if (this.shouldUseFirebaseFallback()) {
+        // Fall back to Firebase if API fails
         console.log('Falling back to Firebase for doctor appointments');
-        try {
-          const appointments = await this.getAppointmentsByDoctorFromFirebase(
-            doctorId, 
-            status, 
-            limit, 
-            (page - 1) * limit
-          );
-          
-          const paginatedResponse = this.createPaginatedResponse(appointments.data, page, limit, appointments.total);
-          
-          // Cache Firebase fallback data with shorter TTL
-          await hybridStorage.set(cacheKey, paginatedResponse, CACHE_TTL.SHORT);
-          
-          return paginatedResponse;
-        } catch (fbError) {
-          console.error('Firebase fallback error:', fbError);
-          return null;
-        }
-      } else {
-        this.handleError(error as AxiosError);
-        return null;
+        const result = await this.getAppointmentsByDoctorFromFirebase(doctorId, status, Number(limit), (page - 1) * Number(limit));
+        
+        const formattedResult: PaginatedResponse<Appointment> = {
+          data: result.data,
+          meta: {
+            current_page: page,
+            per_page: limit,
+            total: result.total,
+            last_page: Math.ceil(result.total / Number(limit))
+          }
+        };
+        
+        // Cache Firebase results with a short TTL
+        await this.hybridStorage.set(cacheKey, formattedResult, 'SHORT');
+        return formattedResult;
       }
+      
+      // If Firebase fallback is disabled, return empty result set
+      return {
+        data: [],
+        meta: {
+          current_page: page,
+          per_page: limit,
+          total: 0,
+          last_page: 1
+        }
+      };
     }
   }
 
   /**
-   * Get appointments by patient ID with hybrid caching and optimized queries
+   * Get all appointments for a patient by ID with optimized performance
    */
   async getByPatientId(
     patientId: string, 
     status?: string, 
     page = 1, 
-    limit = 10,
-    forceRefresh = false
-  ): Promise<PaginatedResponse<Appointment> | null> {
-    // Generate cache key based on parameters
+    limit = 10
+  ): Promise<PaginatedResponse<Appointment>> {
+    // Try to get from cache first to improve performance
     const cacheKey = `patient_appointments_${patientId}_${status || 'all'}_${page}_${limit}`;
+    const cachedData = await this.hybridStorage.get(cacheKey) as PaginatedResponse<Appointment> | null;
     
-    // Check hybrid cache first unless force refresh is requested
-    if (!forceRefresh) {
-      const cachedData = await hybridStorage.get<PaginatedResponse<Appointment>>(cacheKey);
-      if (cachedData) {
-        console.log('Using cached appointment data');
-        return cachedData;
-      }
+    if (cachedData) {
+      console.log('Using cached patient appointments data');
+      return cachedData;
     }
     
+    // Set a timeout for the API request to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // Reduced timeout
+    
     try {
-      // Add request timeout and cancelation handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      // Try API first with timeout
+      const response = await this.apiCall<PaginatedResponse<Appointment>>(`/appointments/patient/${patientId}`, {
+        params: { status, page, limit },
+        signal: controller.signal
+      });
       
-      const response: AxiosResponse<PaginatedResponse<Appointment>> = 
-        await apiClient.get(`/appointments/patient/${patientId}`, {
-          params: { status, page, limit },
-          signal: controller.signal
-        });
-      
-      // Clear timeout
       clearTimeout(timeoutId);
       
-      // Cache successful response with appropriate TTL
-      const ttl = page === 1 ? CACHE_TTL.MEDIUM : CACHE_TTL.SHORT;
-      await hybridStorage.set(cacheKey, response.data, ttl);
+      // Cache successful response with a medium TTL
+      await this.hybridStorage.set(cacheKey, response, 'MEDIUM');
+      return response;
       
-      return response.data;
     } catch (error) {
-      console.log('API error:', error);
+      // Clear the timeout if it hasn't fired yet
+      clearTimeout(timeoutId);
       
-      // If API fails or returns 404, fall back to Firebase if enabled
-      if (USE_FIREBASE_FALLBACK) {
+      if (this.shouldUseFirebaseFallback()) {
+        // Fall back to Firebase if API fails
         console.log('Falling back to Firebase for patient appointments');
-        try {
-          const appointments = await this.getAppointmentsByPatientFromFirebase(
-            patientId, 
-            status, 
-            limit, 
-            (page - 1) * limit
-          );
-          
-          const paginatedResponse = this.createPaginatedResponse(appointments.data, page, limit, appointments.total);
-          
-          // Cache Firebase fallback data with shorter TTL
-          await hybridStorage.set(cacheKey, paginatedResponse, CACHE_TTL.SHORT);
-          
-          return paginatedResponse;
-        } catch (fbError) {
-          console.error('Firebase fallback error:', fbError);
-          return null;
-        }
-      } else {
-        this.handleError(error as AxiosError);
-        return null;
+        const result = await this.getAppointmentsByPatientFromFirebase(patientId, status, Number(limit), (page - 1) * Number(limit));
+        
+        const formattedResult: PaginatedResponse<Appointment> = {
+          data: result.data,
+          meta: {
+            current_page: page,
+            per_page: limit,
+            total: result.total,
+            last_page: Math.ceil(result.total / Number(limit))
+          }
+        };
+        
+        // Cache Firebase results with a short TTL
+        await this.hybridStorage.set(cacheKey, formattedResult, 'SHORT');
+        return formattedResult;
       }
+      
+      // If Firebase fallback is disabled, return empty result set
+      return {
+        data: [],
+        meta: {
+          current_page: page,
+          per_page: limit,
+          total: 0,
+          last_page: 1
+        }
+      };
     }
   }
 
@@ -196,7 +200,7 @@ export class AppointmentService extends BaseApiService<Appointment> {
     
     // Check hybrid cache first unless force refresh is requested
     if (!forceRefresh) {
-      const cachedData = await hybridStorage.get<Appointment>(cacheKey);
+      const cachedData = await this.hybridStorage.get(cacheKey) as Appointment | null;
       if (cachedData) {
         console.log('Using cached appointment data');
         return cachedData;
@@ -208,7 +212,7 @@ export class AppointmentService extends BaseApiService<Appointment> {
       
       if (response) {
         // Cache successful response
-        await hybridStorage.set(cacheKey, response, CACHE_TTL.MEDIUM);
+        await this.hybridStorage.set(cacheKey, response, CACHE_TTL.MEDIUM);
       }
       
       return response;
@@ -226,7 +230,7 @@ export class AppointmentService extends BaseApiService<Appointment> {
             } as Appointment;
             
             // Cache Firebase result
-            await hybridStorage.set(cacheKey, appointment, CACHE_TTL.MEDIUM);
+            await this.hybridStorage.set(cacheKey, appointment, CACHE_TTL.MEDIUM);
             
             return appointment;
           }
@@ -251,11 +255,10 @@ export class AppointmentService extends BaseApiService<Appointment> {
     try {
       const appointmentsRef = collection(this.db, 'appointments');
       
-      // Create base query with consistent ordering for pagination
+      // Create base query with temporary removal of ordering to avoid index requirement
       let baseQuery = query(
         appointmentsRef, 
-        where('doctorId', '==', doctorId),
-        orderBy('createdAt', 'desc')
+        where('doctorId', '==', doctorId)
       );
       
       // Add status filter if provided
@@ -322,11 +325,10 @@ export class AppointmentService extends BaseApiService<Appointment> {
     try {
       const appointmentsRef = collection(this.db, 'appointments');
       
-      // Create base query with consistent ordering for pagination
+      // Create base query with temporary removal of ordering to avoid index requirement
       let baseQuery = query(
         appointmentsRef, 
-        where('patientId', '==', patientId),
-        orderBy('createdAt', 'desc')
+        where('patientId', '==', patientId)
       );
       
       // Add status filter if provided
@@ -384,17 +386,16 @@ export class AppointmentService extends BaseApiService<Appointment> {
   /**
    * Create a paginated response from an array of appointments
    */
-  private createPaginatedResponse(
-    appointments: Appointment[], 
-    page: number, 
+  private createPaginatedResponse<T>(
+    data: T[],
+    page: number,
     limit: number,
-    totalCount?: number
-  ): PaginatedResponse<Appointment> {
-    const total = totalCount !== undefined ? totalCount : appointments.length;
-    const totalPages = Math.ceil(total / limit);
+    total: number
+  ): PaginatedResponse<T> {
+    const totalPages = Math.ceil(total / limit) || 1;
     
     return {
-      data: appointments.slice(0, limit),
+      data: data.slice(0, limit),
       meta: {
         total,
         per_page: limit,
@@ -415,15 +416,15 @@ export class AppointmentService extends BaseApiService<Appointment> {
   async updateStatus(appointmentId: string, status: 'scheduled' | 'completed' | 'cancelled' | 'no-show'): Promise<Appointment | null> {
     try {
       const response: AxiosResponse<ApiResponse<Appointment>> = 
-        await apiClient.patch(`/appointments/${appointmentId}/status`, { status });
+        await this.apiClient.patch(`/appointments/${appointmentId}/status`, { status });
       
       // Update cache with the new status
       const cacheKey = `appointment_${appointmentId}`;
-      const cachedAppointment = await hybridStorage.get<Appointment>(cacheKey);
+      const cachedAppointment = await this.hybridStorage.get(cacheKey) as Appointment | null;
       
       if (cachedAppointment) {
         cachedAppointment.status = status;
-        await hybridStorage.set(cacheKey, cachedAppointment, CACHE_TTL.MEDIUM);
+        await this.hybridStorage.set(cacheKey, cachedAppointment, CACHE_TTL.MEDIUM);
       }
       
       return response.data.data;
@@ -441,7 +442,7 @@ export class AppointmentService extends BaseApiService<Appointment> {
             
             // Update cache
             const cacheKey = `appointment_${appointmentId}`;
-            await hybridStorage.set(cacheKey, updatedAppointment, CACHE_TTL.MEDIUM);
+            await this.hybridStorage.set(cacheKey, updatedAppointment, CACHE_TTL.MEDIUM);
             
             return updatedAppointment;
           }
@@ -466,11 +467,11 @@ export class AppointmentService extends BaseApiService<Appointment> {
   }): Promise<Appointment | null> {
     try {
       const response: AxiosResponse<ApiResponse<Appointment>> = 
-        await apiClient.patch(`/appointments/${appointmentId}/medical-notes`, notes);
+        await this.apiClient.patch(`/appointments/${appointmentId}/medical-notes`, notes);
       
       // Update cache with the new notes
       const cacheKey = `appointment_${appointmentId}`;
-      const cachedAppointment = await hybridStorage.get<Appointment>(cacheKey);
+      const cachedAppointment = await this.hybridStorage.get(cacheKey) as Appointment | null;
       
       if (cachedAppointment) {
         const updatedAppointment = {
@@ -480,7 +481,7 @@ export class AppointmentService extends BaseApiService<Appointment> {
             ...notes
           }
         };
-        await hybridStorage.set(cacheKey, updatedAppointment, CACHE_TTL.MEDIUM);
+        await this.hybridStorage.set(cacheKey, updatedAppointment, CACHE_TTL.MEDIUM);
       }
       
       return response.data.data;
@@ -511,7 +512,7 @@ export class AppointmentService extends BaseApiService<Appointment> {
               
               // Update cache
               const cacheKey = `appointment_${appointmentId}`;
-              await hybridStorage.set(cacheKey, updatedAppointment, CACHE_TTL.MEDIUM);
+              await this.hybridStorage.set(cacheKey, updatedAppointment, CACHE_TTL.MEDIUM);
               
               return updatedAppointment;
             }
@@ -524,5 +525,20 @@ export class AppointmentService extends BaseApiService<Appointment> {
       this.handleError(error as AxiosError);
       return null;
     }
+  }
+
+  // Helper method for API calls with better error handling
+  private async apiCall<T>(endpoint: string, options?: any): Promise<T> {
+    try {
+      const response = await this.apiClient.get(endpoint, options);
+      return response.data as T;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Helper method to determine if Firebase fallback should be used
+  private shouldUseFirebaseFallback(): boolean {
+    return USE_FIREBASE_FALLBACK;
   }
 }

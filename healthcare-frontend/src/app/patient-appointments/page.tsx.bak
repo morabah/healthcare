@@ -1,0 +1,92 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { ProtectedRoute } from '@/components';
+import AppointmentsList from '@/components/patient/AppointmentsList';
+import styles from './patient-appointments.module.css';
+import { createLogger } from '@/lib/logger';
+import Link from 'next/link';
+import Image from 'next/image';
+
+// Create logger for patient appointments
+const logger = createLogger('patient-appointments');
+
+export default function PatientAppointmentsPage() {
+  const { user, userData, logout } = useAuth();
+  const router = useRouter();
+
+  // Handle role check
+  useEffect(() => {
+    if (userData && userData.role !== 'patient') {
+      logger.warn('Non-patient trying to access patient appointments page, redirecting');
+      router.push('/doctor-dashboard');
+    }
+  }, [userData, router]);
+
+  return (
+    <ProtectedRoute>
+      <div className={styles.pageContainer}>
+        {/* Header */}
+        <header className={styles.header}>
+          <div className={styles.headerLeft}>
+            <Link href="/patient-dashboard" className={styles.logoContainer}>
+              <Image 
+                src="/logo.svg" 
+                alt="Healthcare Logo" 
+                width={40} 
+                height={40} 
+                priority 
+              />
+              <span className={styles.logoText}>Healthcare</span>
+            </Link>
+            <nav className={styles.mainNav}>
+              <Link href="/patient-dashboard" className={styles.navLink}>Dashboard</Link>
+              <Link href="/patient-profile" className={styles.navLink}>Profile</Link>
+              <Link href="/patient-appointments" className={`${styles.navLink} ${styles.active}`}>Appointments</Link>
+              <Link href="/medical-records" className={styles.navLink}>Medical Records</Link>
+            </nav>
+          </div>
+          <div className={styles.headerRight}>
+            <span className={styles.userEmail}>{user?.email}</span>
+            <button 
+              onClick={async () => {
+                try {
+                  logger.info('Patient logging out');
+                  await logout();
+                  logger.info('Logout successful, redirecting to login page');
+                  router.push('/login?signedOut=true');
+                } catch (error) {
+                  logger.error('Error during logout', error);
+                  alert('There was an error logging out. Please try again.');
+                }
+              }} 
+              className={styles.logoutButton}
+            >
+              Log Out
+            </button>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className={styles.mainContent}>
+          <div className={styles.pageHeader}>
+            <h1 className={styles.pageTitle}>My Appointments</h1>
+            <p className={styles.pageDescription}>View and manage your healthcare appointments</p>
+          </div>
+
+          <div className={styles.bookAppointmentContainer}>
+            <Link href="/book-appointment" className={styles.bookAppointmentButton}>
+              Book New Appointment
+            </Link>
+          </div>
+
+          <div className={styles.appointmentsContainer}>
+            <AppointmentsList />
+          </div>
+        </main>
+      </div>
+    </ProtectedRoute>
+  );
+}

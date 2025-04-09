@@ -1,0 +1,114 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { ProtectedRoute } from '@/components';
+import AppointmentsCalendar from '@/components/doctor/AppointmentsCalendar';
+import AppointmentDetails from '@/components/doctor/AppointmentDetails';
+import { Home, Calendar, LogOut } from '@/components/icons/CustomIcons';
+import styles from './doctor-appointments.module.css';
+import { createLogger } from '@/lib/logger';
+import Link from 'next/link';
+import Image from 'next/image';
+
+// Create logger for doctor appointments
+const logger = createLogger('doctor-appointments');
+
+export default function DoctorAppointmentsPage() {
+  const { user, userData, logout } = useAuth();
+  const router = useRouter();
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Handle role check
+  useEffect(() => {
+    if (userData && userData.role !== 'doctor') {
+      logger.warn('Non-doctor trying to access doctor appointments page, redirecting');
+      router.push('/patient-dashboard');
+    }
+  }, [userData, router]);
+
+  // Handle appointment selection
+  const handleAppointmentSelected = (appointmentId: string) => {
+    setSelectedAppointmentId(appointmentId);
+  };
+
+  // Handle close appointment details
+  const handleCloseDetails = () => {
+    setSelectedAppointmentId(null);
+  };
+
+  // Handle appointment update
+  const handleAppointmentUpdated = () => {
+    // Trigger any updates needed
+    logger.info('Appointment updated');
+  };
+
+  return (
+    <ProtectedRoute>
+      <div className={styles.pageContainer}>
+        {/* Header */}
+        <header className={styles.header}>
+          <div className={styles.headerLeft}>
+            <Link href="/doctor-dashboard" className={styles.logoContainer}>
+              <Image 
+                src="/logo.svg" 
+                alt="Healthcare Logo" 
+                width={40} 
+                height={40} 
+                priority 
+              />
+              <span className={styles.logoText}>Healthcare</span>
+            </Link>
+            <nav className={styles.mainNav}>
+              <Link href="/doctor-dashboard" className={styles.navLink}>Dashboard</Link>
+              <Link href="/doctor-profile" className={styles.navLink}>Profile</Link>
+              <Link href="/doctor-appointments" className={`${styles.navLink} ${styles.active}`}>Appointments</Link>
+              <Link href="/doctor-records" className={styles.navLink}>Medical Records</Link>
+            </nav>
+          </div>
+          <div className={styles.headerRight}>
+            <span className={styles.userEmail}>{user?.email}</span>
+            <button 
+              onClick={async () => {
+                try {
+                  logger.info('Doctor logging out');
+                  await logout();
+                  logger.info('Logout successful, redirecting to login page');
+                  router.push('/login?signedOut=true');
+                } catch (error) {
+                  logger.error('Error during logout', error);
+                  alert('There was an error logging out. Please try again.');
+                }
+              }} 
+              className={styles.logoutButton}
+            >
+              Log Out
+            </button>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className={styles.mainContent}>
+          <div className={styles.pageHeader}>
+            <h1 className={styles.pageTitle}>Appointments Management</h1>
+            <p className={styles.pageDescription}>View and manage your patient appointments</p>
+          </div>
+
+          <div className={styles.appointmentsContainer}>
+            {selectedAppointmentId ? (
+              <AppointmentDetails 
+                appointmentId={selectedAppointmentId}
+                onClose={handleCloseDetails}
+                onUpdated={handleAppointmentUpdated}
+              />
+            ) : (
+              <AppointmentsCalendar onAppointmentSelected={handleAppointmentSelected} />
+            )}
+          </div>
+        </main>
+      </div>
+    </ProtectedRoute>
+  );
+}

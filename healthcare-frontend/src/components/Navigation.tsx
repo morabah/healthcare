@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { usePrefetchAppointments } from '@/hooks/usePrefetchAppointments';
+import { usePrefetchProfile } from '@/hooks/useProfile';
 import styles from './Navigation.module.css';
 
 export default function Navigation() {
@@ -12,6 +14,8 @@ export default function Navigation() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const { prefetchDoctorAppointments, prefetchPatientAppointments } = usePrefetchAppointments();
+  const { prefetchPatientProfile, prefetchDoctorProfile } = usePrefetchProfile();
 
   // Prefetch common routes to improve navigation performance
   useEffect(() => {
@@ -98,9 +102,47 @@ export default function Navigation() {
           <>
             <div className={`${styles.navLinks} ${isMenuOpen ? styles.navLinksOpen : ''}`}>
               <Link href={isDoctor ? "/doctor-dashboard" : "/"} className={styles.navLink}>Dashboard</Link>
-              <Link href={isDoctor ? "/doctor-profile" : "/profile"} className={styles.navLink}>Profile</Link>
-              <Link href={isDoctor ? "/doctor-appointments" : "/appointments"} className={styles.navLink}>Appointments</Link>
+              <Link 
+                href={isDoctor ? "/doctor-profile" : "/profile"} 
+                className={styles.navLink}
+                onMouseEnter={() => {
+                  // Prefetch profile data when hovering over the link
+                  if (user?.uid) {
+                    if (isDoctor) {
+                      prefetchDoctorProfile(user.uid);
+                    } else {
+                      prefetchPatientProfile(user.uid);
+                    }
+                  }
+                }}
+              >
+                Profile
+              </Link>
+              <Link 
+                href={isDoctor ? "/doctor-appointments" : "/patient-appointments"} 
+                className={styles.navLink}
+                onMouseEnter={() => {
+                  // Prefetch appointments data when hovering over the link
+                  if (isDoctor) {
+                    prefetchDoctorAppointments();
+                  } else {
+                    prefetchPatientAppointments();
+                  }
+                }}  
+              >
+                Appointments
+              </Link>
               <Link href={isDoctor ? "/doctor-records" : "/records"} className={styles.navLink}>Medical Records</Link>
+              <Link 
+                href="/sitemap" 
+                className={styles.navLink}
+                onMouseEnter={() => {
+                  // No specialized prefetching needed for static sitemap
+                  // This is a lightweight page
+                }}
+              >
+                Sitemap
+              </Link>
             </div>
 
             <button 
