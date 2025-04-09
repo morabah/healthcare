@@ -6,10 +6,13 @@
     "start:backend": "cd healthcare-backend && npm run start:dev",
     "start:frontend": "cd healthcare-frontend && npm run dev",
     "build": "concurrently \"cd healthcare-backend && npm run build\" \"cd healthcare-frontend && npm run build\"",
-    "lint": "concurrently \"cd healthcare-backend && npm run lint\" \"cd healthcare-frontend && npm run lint\""
+    "lint": "concurrently \"cd healthcare-backend && npm run lint\" \"cd healthcare-frontend && npm run lint\"",
+    "build:deploy:backend": "npm run build --prefix healthcare-backend && rimraf functions/dist-backend && cpy healthcare-backend/dist/** functions/dist-backend --parents && npm run build --prefix functions"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "cpy-cli": "^5.0.0",
+    "rimraf": "^5.0.0"
   },
   "dependencies": {
     "@types/firebase": "^2.4.32",
