@@ -6,13 +6,438 @@
   width: 100%;
 }
 
-.navigationContainer {
-  width: 100%;
+/* Header Styles */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
   background-color: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  z-index: 10;
   position: sticky;
   top: 0;
+  z-index: 100;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  margin-right: 2rem;
+}
+
+.logoText {
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: #333;
+  margin-left: 0.5rem;
+}
+
+.mainNav {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.navLink {
+  color: #4b5563;
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.navLink:hover {
+  color: #3b82f6;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.userEmail {
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.logoutButton {
+  padding: 0.375rem 0.75rem;
+  background-color: transparent;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logoutButton:hover {
+  background-color: #f3f4f6;
+}
+
+/* Main Content */
+.mainContent {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.welcomeSection {
+  margin-bottom: 2rem;
+  padding: 0 0.5rem;
+}
+
+.welcomeTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.welcomeSubtitle {
+  color: #6b7280;
+  font-size: 0.9375rem;
+}
+
+/* Loading and Error States */
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.loadingSpinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #3b82f6;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.errorIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #ef4444;
+}
+
+.errorTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #ef4444;
+  margin-bottom: 1rem;
+}
+
+.errorButton {
+  padding: 0.5rem 1rem;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.errorButton:hover {
+  background-color: #dc2626;
+}
+
+/* Stats Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 640px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .statsGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Stat Cards */
+.statCard {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  transition: box-shadow 0.3s ease;
+  border: 1px solid #e5e7eb;
+  height: 100%;
+}
+
+.statCard:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.statCardContent {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.statCardTitle {
+  color: #4b5563;
+  font-weight: 500;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.statCardValue {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.statCardButton {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.25rem;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: fit-content;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.statCardIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f3f4f6;
+}
+
+/* Stat Card Button Colors */
+.statCardButton[href="/doctor-schedule"] {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.statCardButton[href="/doctor-schedule"]:hover {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.statCardButton[href="/doctor-appointments"] {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.statCardButton[href="/doctor-appointments"]:hover {
+  background-color: #10b981;
+  color: white;
+}
+
+.statCardButton[href="/doctor-notifications"] {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.statCardButton[href="/doctor-notifications"]:hover {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.statCardButton[href="/doctor-profile"] {
+  border-color: #06b6d4;
+  color: #06b6d4;
+}
+
+.statCardButton[href="/doctor-profile"]:hover {
+  background-color: #06b6d4;
+  color: white;
+}
+
+/* Panels Grid */
+.panelsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .panelsGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Panel Styles */
+.panel {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.panelHeader {
+  padding: 1rem 1.5rem;
+  background-color: #3b82f6;
+  color: white;
+}
+
+.panelTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.panelContent {
+  padding: 1rem 0;
+}
+
+/* Quick Action Items */
+.quickActionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.quickActionItem:hover {
+  background-color: #f9fafb;
+}
+
+.quickActionContent {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.quickActionIcon {
+  flex-shrink: 0;
+}
+
+.quickActionText {
+  display: flex;
+  flex-direction: column;
+}
+
+.quickActionTitle {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+}
+
+.quickActionDescription {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Schedule Content */
+.scheduleContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+
+.scheduleIcon {
+  margin-bottom: 1rem;
+}
+
+.scheduleTitle {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+}
+
+.scheduleDescription {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 1.5rem 0;
+}
+
+.scheduleButton {
+  padding: 0.5rem 1rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-decoration: none;
+}
+
+.scheduleButton:hover {
+  background-color: #2563eb;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+  }
+  
+  .headerLeft {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+  
+  .mainNav {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  
+  .headerRight {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .mainContent {
+    padding: 1.5rem 1rem;
+  }
 }
 
 .contentContainer {
@@ -153,44 +578,57 @@
   cursor: pointer;
   transition: all 0.2s;
   width: fit-content;
+  text-decoration: none;
+  display: inline-block;
 }
 
-.blueButton {
+.statCardIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f3f4f6;
+}
+
+/* Stat Card Button Colors */
+.statCardButton[href="/doctor-schedule"] {
   border-color: #3b82f6;
   color: #3b82f6;
 }
 
-.blueButton:hover {
+.statCardButton[href="/doctor-schedule"]:hover {
   background-color: #3b82f6;
   color: white;
 }
 
-.greenButton {
+.statCardButton[href="/doctor-appointments"] {
   border-color: #10b981;
   color: #10b981;
 }
 
-.greenButton:hover {
+.statCardButton[href="/doctor-appointments"]:hover {
   background-color: #10b981;
   color: white;
 }
 
-.yellowButton {
+.statCardButton[href="/doctor-notifications"] {
   border-color: #f59e0b;
   color: #f59e0b;
 }
 
-.yellowButton:hover {
+.statCardButton[href="/doctor-notifications"]:hover {
   background-color: #f59e0b;
   color: white;
 }
 
-.cyanButton {
+.statCardButton[href="/doctor-profile"] {
   border-color: #06b6d4;
   color: #06b6d4;
 }
 
-.cyanButton:hover {
+.statCardButton[href="/doctor-profile"]:hover {
   background-color: #06b6d4;
   color: white;
 }
@@ -204,42 +642,41 @@
 
 @media (min-width: 768px) {
   .panelsGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr 1fr;
   }
 }
 
-/* Panels */
+/* Panel Styles */
 .panel {
   background-color: white;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
   border: 1px solid #e5e7eb;
-  height: 100%;
+  overflow: hidden;
 }
 
 .panelHeader {
-  background: linear-gradient(to right, #3b82f6, #2563eb);
   padding: 1rem 1.5rem;
+  background-color: #3b82f6;
+  color: white;
 }
 
 .panelTitle {
-  color: white;
   font-size: 1rem;
   font-weight: 600;
+  margin: 0;
 }
 
 .panelContent {
-  padding: 1rem;
+  padding: 1rem 0;
 }
 
-/* Quick Actions */
+/* Quick Action Items */
 .quickActionItem {
-  padding: 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 0.75rem 1.5rem;
   cursor: pointer;
   transition: background-color 0.2s;
 }
@@ -248,18 +685,14 @@
   background-color: #f9fafb;
 }
 
-.quickActionItem:last-child {
-  border-bottom: none;
-}
-
 .quickActionContent {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
 }
 
 .quickActionIcon {
-  margin-right: 0.75rem;
-  min-width: 18px;
+  flex-shrink: 0;
 }
 
 .quickActionText {
@@ -268,25 +701,26 @@
 }
 
 .quickActionTitle {
-  font-weight: 500;
-  color: #374151;
   font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
 }
 
 .quickActionDescription {
   font-size: 0.75rem;
   color: #6b7280;
+  margin: 0;
 }
 
-/* Schedule */
+/* Schedule Content */
 .scheduleContent {
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 2.5rem 1.5rem;
   text-align: center;
-  min-height: 250px;
 }
 
 .scheduleIcon {
@@ -294,31 +728,62 @@
 }
 
 .scheduleTitle {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
 }
 
 .scheduleDescription {
+  font-size: 0.875rem;
   color: #6b7280;
-  margin-bottom: 1.5rem;
+  margin: 0 0 1.5rem 0;
 }
 
 .scheduleButton {
-  margin-top: 1rem;
   padding: 0.5rem 1rem;
   background-color: #3b82f6;
   color: white;
   border: none;
-  border-radius: 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  text-decoration: none;
 }
 
 .scheduleButton:hover {
   background-color: #2563eb;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+  }
+  
+  .headerLeft {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+  
+  .mainNav {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  
+  .headerRight {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .mainContent {
+    padding: 1.5rem 1rem;
+  }
 }
 
 .dashboardPage {

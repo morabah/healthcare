@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import styles from './Navigation.module.css';
 
 export default function Navigation() {
-  const { user, logout } = useAuth();
+  const { user, logout, userData } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   const handleLogout = async () => {
@@ -17,6 +17,9 @@ export default function Navigation() {
       console.error('Logout error:', error);
     }
   };
+
+  // Determine if the user is a doctor
+  const isDoctor = userData?.role === 'doctor';
 
   return (
     <nav className={styles.navbar}>
@@ -35,10 +38,10 @@ export default function Navigation() {
         {user && (
           <>
             <div className={`${styles.navLinks} ${isMenuOpen ? styles.navLinksOpen : ''}`}>
-              <Link href="/" className={styles.navLink}>Dashboard</Link>
-              <Link href="/profile" className={styles.navLink}>Profile</Link>
-              <Link href="/appointments" className={styles.navLink}>Appointments</Link>
-              <Link href="/records" className={styles.navLink}>Medical Records</Link>
+              <Link href={isDoctor ? "/doctor-dashboard" : "/"} className={styles.navLink}>Dashboard</Link>
+              <Link href={isDoctor ? "/doctor-profile" : "/profile"} className={styles.navLink}>Profile</Link>
+              <Link href={isDoctor ? "/doctor-appointments" : "/appointments"} className={styles.navLink}>Appointments</Link>
+              <Link href={isDoctor ? "/doctor-records" : "/records"} className={styles.navLink}>Medical Records</Link>
             </div>
 
             <button 
