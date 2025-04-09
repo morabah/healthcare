@@ -1,0 +1,222 @@
+.formContainer {
+  width: 100%;
+}
+
+.tabContainer {
+  display: flex;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #718096;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.activeTab {
+  color: #4a5568;
+  border-bottom: 2px solid #4299e1;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+}
+
+.input::placeholder {
+  color: #a0aec0;
+}
+
+.errorContainer {
+  background-color: #fff5f5;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  border-left: 3px solid #f56565;
+}
+
+.errorText {
+  color: #e53e3e;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.successContainer {
+  background-color: #f0fff4;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  border-left: 3px solid #48bb78;
+  margin-bottom: 1.5rem;
+}
+
+.successText {
+  color: #2f855a;
+  font-size: 0.875rem;
+  margin: 0 0 1rem 0;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 2.75rem;
+}
+
+.submitButton:hover {
+  background-color: #3182ce;
+}
+
+.submitButton:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.divider span {
+  padding: 0 0.75rem;
+  color: #718096;
+  font-size: 0.875rem;
+}
+
+.googleButton {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: white;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  height: 2.75rem;
+}
+
+.googleButton:hover {
+  background-color: #f7fafc;
+}
+
+.googleButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spinner {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: #4299e1;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.backButton:hover {
+  color: #3182ce;
+  text-decoration: underline;
+}
+
+.formTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+}
+
+.forgotPasswordLink {
+  background: none;
+  border: none;
+  color: #4299e1;
+  font-size: 0.75rem;
+  text-align: right;
+  padding: 0;
+  margin: -0.75rem 0 0 auto;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.forgotPasswordLink:hover {
+  color: #3182ce;
+  text-decoration: underline;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
