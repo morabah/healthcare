@@ -5,18 +5,51 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { auth } from '@/lib/firebase/firebaseClient';
 import styles from './Navigation.module.css';
 
 export default function Navigation() {
-  const { user, userData } = useAuth();
+  const { user, userData, logout } = useAuth();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
 
-  // Direct logout handler with immediate redirect
-  const handleSignOut = () => {
-    // Force an immediate redirect to a special logout URL with a timestamp to prevent caching
-    window.location.replace(`/api/auth/logout?t=${Date.now()}`);
+  // Enhanced logout handler that uses the AuthContext directly
+  const handleLogout = async () => {
+    try {
+      // Prevent double-clicks
+      if (isLoggingOut) return;
+      setIsLoggingOut(true);
+
+      // Show feedback in the UI
+      const logoutButton = document.querySelector(`.${styles.logoutButton}`) as HTMLButtonElement;
+      if (logoutButton) {
+        logoutButton.innerText = 'Logging out...';
+      }
+
+      // Use the AuthContext logout function which is now more robust
+      await logout();
+      
+      // Navigate to login page after successful logout
+      // Use push instead of hard redirect to maintain state
+      router.push('/login?signedOut=true');
+    } catch (error) {
+      console.error('Logout error:', error);
+      
+      // Show error in UI temporarily
+      const logoutButton = document.querySelector(`.${styles.logoutButton}`) as HTMLButtonElement;
+      if (logoutButton) {
+        logoutButton.innerText = 'Error logging out';
+        setTimeout(() => {
+          logoutButton.innerText = 'Log Out';
+          setIsLoggingOut(false);
+        }, 2000);
+      }
+      
+      // Even if there's an error, try to redirect anyway
+      setTimeout(() => {
+        router.push('/login?signedOut=true');
+      }, 1000);
+    }
   };
 
   // Determine if the user is a doctor
@@ -64,10 +97,11 @@ export default function Navigation() {
                 <span className={styles.userEmail}>{user.email}</span>
               </div>
               <button 
-                onClick={handleSignOut} 
+                onClick={handleLogout} 
                 className={styles.logoutButton}
+                disabled={isLoggingOut}
               >
-                Log Out
+                {isLoggingOut ? 'Logging out...' : 'Log Out'}
               </button>
             </div>
           ) : (

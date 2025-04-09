@@ -10,6 +10,10 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/firebaseClient';
 import { Calendar, Bell, UserCircle, Clock, ChevronRight } from 'lucide-react';
 import styles from './doctor-dashboard.module.css';
+import { createLogger } from '@/lib/logger';
+
+// Create logger for doctor dashboard
+const doctorDashboardLogger = createLogger('doctor-dashboard');
 
 interface PatientSummary {
   id: string;
@@ -20,7 +24,7 @@ interface PatientSummary {
 }
 
 export default function DoctorDashboard() {
-  const { user, userData } = useAuth();
+  const { user, userData, logout } = useAuth();
   const router = useRouter();
   const [patients, setPatients] = useState<PatientSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,8 +111,17 @@ export default function DoctorDashboard() {
           <div className={styles.headerRight}>
             <span className={styles.userEmail}>{user?.email}</span>
             <button 
-              onClick={() => {
+              onClick={async () => {
                 // Handle logout
+                try {
+                  doctorDashboardLogger.info('Doctor logging out');
+                  await logout();
+                  doctorDashboardLogger.info('Logout successful, redirecting to login page');
+                  router.push('/login?signedOut=true');
+                } catch (error) {
+                  doctorDashboardLogger.error('Error during logout', error);
+                  alert('There was an error logging out. Please try again.');
+                }
               }} 
               className={styles.logoutButton}
             >

@@ -66,16 +66,29 @@ export default function DoctorProfileForm() {
         
         if (doctorProfile) {
           setProfile(doctorProfile);
+          setError('');
         } else {
           // If no profile exists yet, initialize with user ID
           setProfile(prev => ({
             ...prev,
             userId: user.uid
           }));
+          // This is not really an error, just information for a new user
+          setError('');
         }
       } catch (err) {
-        console.error('Error fetching profile:', err);
-        setError('Failed to load your profile. Please try again later.');
+        // Don't show errors related to missing profiles - these are expected for new users
+        if (err instanceof Error && err.message.includes('404')) {
+          console.log('No profile found, creating a new one');
+          setProfile(prev => ({
+            ...prev,
+            userId: user.uid
+          }));
+          setError('');
+        } else {
+          console.error('Error fetching profile:', err);
+          setError('Failed to load your profile. Please try again later.');
+        }
       } finally {
         setIsLoading(false);
       }

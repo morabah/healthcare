@@ -5,11 +5,26 @@ import { useRouter } from 'next/navigation';
 import { useAuth, UserRole } from '@/context/AuthContext';
 import styles from './LoginForm.module.css';
 import RoleSelector from './RoleSelector';
+import RoleSelectionModal from './RoleSelectionModal';
+import { createLogger } from '@/lib/logger';
+
+// Create a dedicated logger for login form
+const loginLogger = createLogger('login-form');
 
 type FormMode = 'login' | 'signup' | 'reset';
 
 export default function LoginForm() {
-  const { user, error: authError, login, signUp, signInWithGoogle, resetPassword, setError: setAuthError } = useAuth();
+  const { 
+    user, 
+    error: authError, 
+    login, 
+    signUp, 
+    signInWithGoogle, 
+    resetPassword, 
+    setError: setAuthError,
+    isNewGoogleUser,
+    pendingGoogleUserData
+  } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -24,13 +39,17 @@ export default function LoginForm() {
   // Handle auth context errors
   useEffect(() => {
     if (authError) {
+      loginLogger.error('Authentication error received', { error: authError });
       setError(authError);
     }
   }, [authError]);
 
   // Clear errors when component unmounts
   useEffect(() => {
+    loginLogger.debug('LoginForm component mounted');
+    
     return () => {
+      loginLogger.debug('LoginForm component unmounting, clearing errors');
       setAuthError(null);
     };
   }, [setAuthError]);
@@ -106,24 +125,64 @@ export default function LoginForm() {
   };
 
   const handleGoogleSignIn = async () => {
+    loginLogger.info('Starting Google sign-in process from login form');
     setError(null);
     setLoading(true);
     
     try {
+      // Clear the form fields when starting Google auth
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      
+      loginLogger.debug('Form fields cleared, calling signInWithGoogle');
+      
+      // Track UI state for debugging
+      if (isNewGoogleUser) {
+        loginLogger.warn('isNewGoogleUser flag is already true before starting Google sign-in', {
+          isNewGoogleUser
+        });
+      }
+      
+      // Call the Google sign-in function from AuthContext
       await signInWithGoogle();
+      
+      loginLogger.info('Google sign-in completed or waiting for role selection', {
+        isNewGoogleUser: isNewGoogleUser
+      });
+      
+      // Don't do anything else here - the redirect or role selection modal
+      // will be handled by the AuthContext
     } catch (err) {
-      // Error is already set in the auth context
-      // Check for specific error types
+      loginLogger.error('Google sign-in error in LoginForm', err instanceof Error ? {
+        message: err.message,
+        name: err.name,
+        stack: err.stack
+      } : err);
+      
       if (err instanceof Error) {
-        if (err.message.includes('popup-blocked') || err.message.includes('popup')) {
-          setError("The authentication popup was blocked by your browser. Please allow popups for this site and try again.");
-        } else if (err.message.includes('unauthorized-domain')) {
-          setError("Google sign-in is not available on this domain. Please use email/password login instead, or contact the administrator to enable Google sign-in.");
-        }
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred during Google sign-in.');
       }
     } finally {
+      // Log the final state of the login process
+      loginLogger.debug('Google sign-in process in LoginForm complete', {
+        isLoading: loading,
+        hasError: !!error,
+        isNewGoogleUser: isNewGoogleUser
+      });
+      
       setLoading(false);
     }
+  };
+
+  const handleRoleSelectionComplete = () => {
+    // This will be called after role selection is complete
+    loginLogger.info('Role selection completed, user should be redirected shortly');
+    
+    // No need to do anything here, the AuthContext will handle the redirect
+    // once the user data is fully set up
   };
 
   const toggleMode = (newMode: FormMode) => {
@@ -137,6 +196,15 @@ export default function LoginForm() {
     setForgotPassword(!forgotPassword);
     setError(null);
   };
+
+  // Render role selection modal with improved error handling
+  useEffect(() => {
+    if (isNewGoogleUser) {
+      loginLogger.info('Showing role selection modal', { 
+        hasPendingData: !!pendingGoogleUserData 
+      });
+    }
+  }, [isNewGoogleUser, pendingGoogleUserData]);
 
   // Password reset form
   if (mode === 'reset') {
@@ -331,20 +399,24 @@ export default function LoginForm() {
 
         <button 
           type="button" 
-          onClick={handleGoogleSignIn}
           className={styles.googleButton}
+          onClick={handleGoogleSignIn}
           disabled={loading}
         >
-          <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
-            <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
-              <path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z"/>
-              <path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z"/>
-              <path fill="#FBBC05" d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z"/>
-              <path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z"/>
+          <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+            <g transform="matrix(1, 0, 0, 1, 0, 0)">
+              <path d="M21.35,11.1H12v3.2h5.59c-0.5,2.6-2.6,4.43-5.59,4.43c-3.3,0-6.01-2.7-6.01-6s2.7-6,6.01-6c1.49,0,2.85,0.55,3.9,1.45 l2.46-2.46C16.55,3.89,14.4,3,12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9c5.2,0,8.65-3.73,8.65-8.9c0-0.57-0.05-1.12-0.15-1.65L21.35,11.1z" fill="#4285F4"></path>
             </g>
           </svg>
-          Continue with Google
+          <span>{mode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}</span>
         </button>
+        
+        {/* Show role selection modal for new Google users */}
+        {isNewGoogleUser && (
+          <div className={styles.modalContainer}>
+            <RoleSelectionModal onComplete={handleRoleSelectionComplete} />
+          </div>
+        )}
         
         <p className={styles.toggleText}>
           {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
@@ -356,6 +428,15 @@ export default function LoginForm() {
             {mode === 'login' ? 'Sign Up' : 'Sign In'}
           </button>
         </p>
+        
+        {/* Debug info visible only in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div style={{ position: 'fixed', bottom: 0, right: 0, background: '#f0f0f0', padding: '5px', fontSize: '10px', opacity: 0.7 }}>
+            <div>Auth State: {user ? 'Signed In' : 'Signed Out'}</div>
+            <div>New Google User: {isNewGoogleUser ? 'Yes' : 'No'}</div>
+            <div>Has Pending Data: {pendingGoogleUserData ? 'Yes' : 'No'}</div>
+          </div>
+        )}
       </form>
     </div>
   );

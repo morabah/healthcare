@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/firebaseClient';
 
 // Flag to control whether to use Firebase fallback
+// Temporarily re-enabled to prevent network errors until backend is fully deployed
 const USE_FIREBASE_FALLBACK = true;
 
 /**
@@ -20,23 +21,17 @@ export class DoctorService extends BaseApiService<DoctorProfile> {
    * Get doctor profile by user ID (Firebase UID)
    */
   async getProfileByUserId(userId: string): Promise<DoctorProfile | null> {
-    if (USE_FIREBASE_FALLBACK) {
-      try {
-        // First try the API
-        const response: AxiosResponse<ApiResponse<DoctorProfile>> = 
-          await apiClient.get(`/doctors/user/${userId}`);
-        return response.data.data;
-      } catch (error) {
-        console.log('API not available, falling back to Firebase');
-        // Fallback to Firebase if API fails
+    try {
+      // First try the API
+      const response: AxiosResponse<ApiResponse<DoctorProfile>> = 
+        await apiClient.get(`/doctors/user/${userId}`);
+      return response.data.data;
+    } catch (error) {
+      // If API fails or returns 404, fall back to Firebase if enabled
+      if (USE_FIREBASE_FALLBACK) {
+        console.log('API error, falling back to Firebase');
         return this.getProfileFromFirebase(userId);
-      }
-    } else {
-      try {
-        const response: AxiosResponse<ApiResponse<DoctorProfile>> = 
-          await apiClient.get(`/doctors/user/${userId}`);
-        return response.data.data;
-      } catch (error) {
+      } else {
         this.handleError(error as AxiosError);
         return null;
       }
@@ -70,9 +65,10 @@ export class DoctorService extends BaseApiService<DoctorProfile> {
           updatedAt: data.updatedAt || new Date().toISOString()
         };
       }
+      console.log('No existing doctor profile found for user', userId);
       return null;
     } catch (err) {
-      console.error('Error fetching profile from Firebase:', err);
+      console.warn('Error accessing Firebase doctor profile:', err);
       return null;
     }
   }

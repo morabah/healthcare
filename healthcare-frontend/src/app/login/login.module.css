@@ -65,6 +65,35 @@
   color: #a0aec0;
 }
 
+.message {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  text-align: center;
+  opacity: 1;
+  animation: fadeInOut 10s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.success {
+  background-color: rgba(52, 211, 153, 0.15);
+  color: #065f46;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.error {
+  background-color: rgba(248, 113, 113, 0.15);
+  color: #b91c1c;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
 @media (max-width: 640px) {
   .loginCard {
     padding: 1.5rem;
