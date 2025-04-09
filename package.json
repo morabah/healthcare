@@ -15,6 +15,8 @@
     "rimraf": "^5.0.0"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.72.2",
+    "@tanstack/react-query-devtools": "^5.72.2",
     "@types/firebase": "^2.4.32",
     "firebase": "^11.6.0",
     "firebase-admin": "^13.2.0",

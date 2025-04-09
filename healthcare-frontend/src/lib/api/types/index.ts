@@ -10,10 +10,17 @@ export interface ApiResponse<T> {
 
 export interface PaginatedResponse<T> {
   data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  meta: {
+    total: number;
+    per_page: number;
+    current_page: number;
+    last_page: number;
+    first_page: number;
+    first_page_url: string;
+    last_page_url: string;
+    next_page_url: string | null;
+    prev_page_url: string | null;
+  };
 }
 
 export interface DoctorProfile {
@@ -68,6 +75,15 @@ export interface Appointment {
   followUpDate?: string;
   createdAt?: string;
   updatedAt?: string;
+  medicalNotes?: {
+    symptoms?: string;
+    diagnosis?: string;
+    prescription?: string;
+    followUpDate?: string;
+    [key: string]: any;
+  };
+  patientName?: string;
+  doctorName?: string;
 }
 
 export interface UserData {
