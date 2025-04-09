@@ -18,8 +18,8 @@ export default function Home() {
         if (userData.role === 'doctor') {
           router.push('/doctor-dashboard');
         } else {
-          // Default to patient profile
-          router.push('/profile');
+          // Redirect patients to the patient dashboard
+          router.push('/patient-dashboard');
         }
       }
     }
