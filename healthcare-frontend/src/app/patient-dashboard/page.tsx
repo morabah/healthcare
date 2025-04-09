@@ -9,6 +9,7 @@ import styles from './patient-dashboard.module.css';
 import { collection, getDocs, query, where, doc, getDoc, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/firebaseClient';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Appointment {
   id: string;
@@ -16,7 +17,7 @@ interface Appointment {
   time: string;
   doctorName: string;
   doctorId: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: 'pending' | 'completed' | 'cancelled';
   type: string;
   notes?: string;
 }
@@ -41,15 +42,24 @@ interface HealthMetric {
   notes?: string;
 }
 
+interface Notification {
+  id: string;
+  message: string;
+  date: string;
+  read: boolean;
+  type: 'appointment' | 'medication' | 'result' | 'general';
+}
+
 export default function PatientDashboard() {
   const router = useRouter();
   const { user, userData } = useAuth();
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [medications, setMedications] = useState<Medication[]>([]);
   const [healthMetrics, setHealthMetrics] = useState<HealthMetric[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'appointments' | 'medications' | 'metrics'>('overview');
+  const [patientProfile, setPatientProfile] = useState<any>(null);
 
   // Redirect if user is not a patient
   useEffect(() => {
@@ -90,7 +100,7 @@ export default function PatientDashboard() {
               time: data.time,
               doctorName: data.doctorName,
               doctorId: data.doctorId,
-              status: data.status,
+              status: data.status || 'pending',
               type: data.type,
               notes: data.notes
             });
@@ -155,6 +165,53 @@ export default function PatientDashboard() {
         });
         
         setHealthMetrics(metricsData);
+
+        // Fetch patient profile
+        const profileRef = doc(db, 'patientProfiles', user.uid);
+        const profileSnap = await getDoc(profileRef);
+        
+        if (profileSnap.exists()) {
+          setPatientProfile(profileSnap.data());
+        }
+
+        // Mock notifications for now
+        setNotifications([
+          {
+            id: '1',
+            message: 'Your appointment with Dr. Smith is tomorrow',
+            date: new Date().toISOString(),
+            read: false,
+            type: 'appointment'
+          },
+          {
+            id: '2',
+            message: 'New lab results available',
+            date: new Date().toISOString(),
+            read: false,
+            type: 'result'
+          },
+          {
+            id: '3',
+            message: 'Medication refill reminder',
+            date: new Date().toISOString(),
+            read: false,
+            type: 'medication'
+          },
+          {
+            id: '4',
+            message: 'Please complete your health survey',
+            date: new Date().toISOString(),
+            read: true,
+            type: 'general'
+          },
+          {
+            id: '5',
+            message: 'Your prescription is ready for pickup',
+            date: new Date().toISOString(),
+            read: true,
+            type: 'medication'
+          }
+        ]);
       } catch (err) {
         console.error('Error fetching patient data:', err);
         setError('Failed to load your health information. Please try again later.');
@@ -166,191 +223,55 @@ export default function PatientDashboard() {
     fetchPatientData();
   }, [user]);
 
-  const renderHealthSummary = () => {
-    if (healthMetrics.length === 0) {
-      return (
-        <div className={styles.emptyState}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
-            <path d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 2a8 8 0 100 16 8 8 0 000-16zm0 7a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm0-3.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
-          </svg>
-          <p>No health metrics recorded yet</p>
-        </div>
-      );
-    }
-
-    // Group metrics by type
-    const metricsByType: Record<string, HealthMetric[]> = {};
-    healthMetrics.forEach(metric => {
-      if (!metricsByType[metric.type]) {
-        metricsByType[metric.type] = [];
-      }
-      metricsByType[metric.type].push(metric);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
     });
+  };
 
+  const formatTime = (timeString: string) => {
+    return timeString; // Already in the right format
+  };
+
+  if (isLoading) {
     return (
-      <div className={styles.metricsGrid}>
-        {Object.entries(metricsByType).map(([type, metrics]) => {
-          const latestMetric = metrics[0]; // Metrics are already ordered by date desc
-          return (
-            <div key={type} className={styles.metricCard}>
-              <h3>{type}</h3>
-              <div className={styles.metricValue}>
-                {latestMetric.value} <span className={styles.metricUnit}>{latestMetric.unit}</span>
-              </div>
-              <div className={styles.metricDate}>
-                Last recorded: {new Date(latestMetric.date).toLocaleDateString()}
-              </div>
+      <ProtectedRoute requiredRole="patient">
+        <div className={styles.dashboardPage}>
+          <Navigation />
+          <main className={styles.main}>
+            <div className={styles.loadingContainer}>
+              <div className={styles.spinner}></div>
+              <p>Loading your health information...</p>
             </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const renderAppointments = () => {
-    if (upcomingAppointments.length === 0) {
-      return (
-        <div className={styles.emptyState}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
-            <path d="M19 4h-1V3a1 1 0 0 0-2 0v1H8V3a1 1 0 0 0-2 0v1H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3zm-8 0c.83 0 1.5.67 1.5 1.5S11.83 6 11 6s-1.5-.67-1.5-1.5S10.17 3 11 3zm-1 5h2v7h-2V8zm0 11h2v-2h-2v2z"/>
-          </svg>
-          <p>No upcoming appointments</p>
-          <button className={styles.actionButton}>Schedule Appointment</button>
+          </main>
         </div>
-      );
-    }
+      </ProtectedRoute>
+    );
+  }
 
+  if (error) {
     return (
-      <div className={styles.appointmentsList}>
-        {upcomingAppointments.map(appointment => (
-          <div key={appointment.id} className={styles.appointmentCard}>
-            <div className={styles.appointmentDate}>
-              <div className={styles.dateDay}>
-                {new Date(appointment.date).getDate()}
-              </div>
-              <div className={styles.dateMonth}>
-                {new Date(appointment.date).toLocaleString('default', { month: 'short' })}
-              </div>
+      <ProtectedRoute requiredRole="patient">
+        <div className={styles.dashboardPage}>
+          <Navigation />
+          <main className={styles.main}>
+            <div className={styles.errorContainer}>
+              <p>{error}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className={styles.retryButton}
+              >
+                Retry
+              </button>
             </div>
-            <div className={styles.appointmentDetails}>
-              <h3>{appointment.type}</h3>
-              <p>Dr. {appointment.doctorName}</p>
-              <p className={styles.appointmentTime}>{appointment.time}</p>
-            </div>
-            <div className={styles.appointmentStatus}>
-              <span className={`${styles.statusBadge} ${styles[appointment.status]}`}>
-                {appointment.status}
-              </span>
-            </div>
-          </div>
-        ))}
-        <div className={styles.viewAllLink}>
-          <Link href="/appointments">View all appointments</Link>
+          </main>
         </div>
-      </div>
+      </ProtectedRoute>
     );
-  };
-
-  const renderMedications = () => {
-    if (medications.length === 0) {
-      return (
-        <div className={styles.emptyState}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
-            <path d="M19.5 5.5l-9 9-4-4-4.5 4.5 4 4 9-9 4-4-4-4-9 9"/>
-          </svg>
-          <p>No active medications</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className={styles.medicationsList}>
-        {medications.map(medication => (
-          <div key={medication.id} className={styles.medicationCard}>
-            <div className={styles.medicationIcon}>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                <path d="M19 3h-4.18C14.25 1.28 12.77 0 11 0S7.75 1.28 7.18 3H3C1.9 3 1 3.9 1 5v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 0c.83 0 1.5.67 1.5 1.5S11.83 6 11 6s-1.5-.67-1.5-1.5S10.17 3 11 3zm-1 5h2v7h-2V8zm0 11h2v-2h-2v2z"/>
-              </svg>
-            </div>
-            <div className={styles.medicationDetails}>
-              <h3>{medication.name}</h3>
-              <p>{medication.dosage} - {medication.frequency}</p>
-              <p className={styles.medicationPrescriber}>Prescribed by: Dr. {medication.prescribedBy}</p>
-            </div>
-            <div className={styles.medicationInstructions}>
-              {medication.instructions}
-            </div>
-          </div>
-        ))}
-        <div className={styles.viewAllLink}>
-          <Link href="/medications">View all medications</Link>
-        </div>
-      </div>
-    );
-  };
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return (
-          <>
-            <div className={styles.dashboardSection}>
-              <div className={styles.sectionHeader}>
-                <h2>Upcoming Appointments</h2>
-                <button className={styles.actionButton}>Schedule New</button>
-              </div>
-              {renderAppointments()}
-            </div>
-            
-            <div className={styles.dashboardSection}>
-              <div className={styles.sectionHeader}>
-                <h2>Current Medications</h2>
-              </div>
-              {renderMedications()}
-            </div>
-            
-            <div className={styles.dashboardSection}>
-              <div className={styles.sectionHeader}>
-                <h2>Health Metrics</h2>
-                <button className={styles.actionButton}>Record New</button>
-              </div>
-              {renderHealthSummary()}
-            </div>
-          </>
-        );
-      case 'appointments':
-        return (
-          <div className={styles.dashboardSection}>
-            <div className={styles.sectionHeader}>
-              <h2>Appointments</h2>
-              <button className={styles.actionButton}>Schedule New</button>
-            </div>
-            {renderAppointments()}
-          </div>
-        );
-      case 'medications':
-        return (
-          <div className={styles.dashboardSection}>
-            <div className={styles.sectionHeader}>
-              <h2>Medications</h2>
-            </div>
-            {renderMedications()}
-          </div>
-        );
-      case 'metrics':
-        return (
-          <div className={styles.dashboardSection}>
-            <div className={styles.sectionHeader}>
-              <h2>Health Metrics</h2>
-              <button className={styles.actionButton}>Record New</button>
-            </div>
-            {renderHealthSummary()}
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
+  }
 
   return (
     <ProtectedRoute requiredRole="patient">
@@ -358,72 +279,181 @@ export default function PatientDashboard() {
         <Navigation />
         <main className={styles.main}>
           <div className={styles.container}>
-            <div className={styles.header}>
-              <div>
-                <h1 className={styles.title}>Patient Dashboard</h1>
-                <p className={styles.welcome}>Welcome, {userData?.displayName?.split(' ')[0]}</p>
+            {/* Welcome Header */}
+            <div className={styles.welcomeHeader}>
+              <h1>Welcome, {userData?.displayName?.split(' ')[0] || 'Patient'}!</h1>
+              <p>Manage your appointments and health information from your personal dashboard.</p>
+            </div>
+
+            {/* Summary Cards */}
+            <div className={styles.summaryCards}>
+              <div className={styles.summaryCard}>
+                <div className={styles.summaryContent}>
+                  <div>
+                    <h3>Upcoming Appointments</h3>
+                    <div className={styles.summaryNumber}>{upcomingAppointments.length}</div>
+                  </div>
+                  <div className={styles.summaryIcon} style={{ backgroundColor: '#1a73e8' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 3h-1V2h-2v1H8V2H6v1H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V9h14v10zM5 7V5h14v2H5zm2 4h10v2H7v-2zm0 4h7v2H7v-2z" />
+                    </svg>
+                  </div>
+                </div>
+                <Link href="/appointments" className={styles.viewAllLink}>View All</Link>
               </div>
-              <div className={styles.quickActions}>
-                <button className={styles.actionButton}>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-                    <path d="M19 4h-1V3a1 1 0 0 0-2 0v1H8V3a1 1 0 0 0-2 0v1H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3z"/>
-                  </svg>
-                  Book Appointment
-                </button>
-                <Link href="/profile" className={styles.profileLink}>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                  </svg>
-                  My Profile
-                </Link>
+
+              <div className={styles.summaryCard}>
+                <div className={styles.summaryContent}>
+                  <div>
+                    <h3>Medical Records</h3>
+                    <div className={styles.summaryNumber}>{healthMetrics.length || 0}</div>
+                  </div>
+                  <div className={styles.summaryIcon} style={{ backgroundColor: '#34a853' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z" />
+                    </svg>
+                  </div>
+                </div>
+                <Link href="/records" className={styles.viewAllLink}>View All</Link>
+              </div>
+
+              <div className={styles.summaryCard}>
+                <div className={styles.summaryContent}>
+                  <div>
+                    <h3>Prescriptions</h3>
+                    <div className={styles.summaryNumber}>{medications.length}</div>
+                  </div>
+                  <div className={styles.summaryIcon} style={{ backgroundColor: '#00bcd4' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                    </svg>
+                  </div>
+                </div>
+                <Link href="/medications" className={styles.viewAllLink}>View All</Link>
+              </div>
+
+              <div className={styles.summaryCard}>
+                <div className={styles.summaryContent}>
+                  <div>
+                    <h3>Notifications</h3>
+                    <div className={styles.summaryNumber}>{notifications.filter(n => !n.read).length}</div>
+                  </div>
+                  <div className={styles.summaryIcon} style={{ backgroundColor: '#ffa000' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z" />
+                    </svg>
+                  </div>
+                </div>
+                <Link href="/notifications" className={styles.viewAllLink}>View All</Link>
               </div>
             </div>
 
-            <div className={styles.tabs}>
-              <button 
-                className={`${styles.tabButton} ${activeTab === 'overview' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('overview')}
-              >
-                Overview
-              </button>
-              <button 
-                className={`${styles.tabButton} ${activeTab === 'appointments' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('appointments')}
-              >
-                Appointments
-              </button>
-              <button 
-                className={`${styles.tabButton} ${activeTab === 'medications' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('medications')}
-              >
-                Medications
-              </button>
-              <button 
-                className={`${styles.tabButton} ${activeTab === 'metrics' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('metrics')}
-              >
-                Health Metrics
-              </button>
-            </div>
+            <div className={styles.dashboardContent}>
+              {/* Left Column - Appointments */}
+              <div className={styles.appointmentsSection}>
+                <div className={styles.sectionHeader}>
+                  <h2>Upcoming Appointments</h2>
+                </div>
+                
+                {upcomingAppointments.length > 0 ? (
+                  <div className={styles.appointmentsTable}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Time</th>
+                          <th>Doctor</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {upcomingAppointments.map((appointment) => (
+                          <tr key={appointment.id}>
+                            <td>{formatDate(appointment.date)}</td>
+                            <td>{formatTime(appointment.time)}</td>
+                            <td>{appointment.doctorName}</td>
+                            <td>
+                              <span className={`${styles.statusBadge} ${styles[appointment.status]}`}>
+                                {appointment.status}
+                              </span>
+                            </td>
+                            <td>
+                              <button className={styles.actionButton}>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                                </svg>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className={styles.emptyState}>
+                    <p>No upcoming appointments</p>
+                    <button className={styles.scheduleButton}>Schedule Appointment</button>
+                  </div>
+                )}
+              </div>
 
-            {isLoading ? (
-              <div className={styles.loadingContainer}>
-                <div className={styles.spinner}></div>
-                <p>Loading your health information...</p>
+              {/* Right Column - Profile Information */}
+              <div className={styles.profileSection}>
+                <div className={styles.sectionHeader}>
+                  <h2>Profile Information</h2>
+                </div>
+                
+                <div className={styles.profileContent}>
+                  <div className={styles.profileAvatar}>
+                    {userData?.photoURL ? (
+                      <Image 
+                        src={userData.photoURL} 
+                        alt="Profile" 
+                        width={80} 
+                        height={80} 
+                        className={styles.avatarImage} 
+                      />
+                    ) : (
+                      <div className={styles.defaultAvatar}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className={styles.profileDetails}>
+                    <div className={styles.profileRow}>
+                      <span className={styles.profileLabel}>Name:</span>
+                      <span className={styles.profileValue}>{userData?.displayName || 'Not provided'}</span>
+                    </div>
+                    <div className={styles.profileRow}>
+                      <span className={styles.profileLabel}>Email:</span>
+                      <span className={styles.profileValue}>{userData?.email || 'Not provided'}</span>
+                    </div>
+                    <div className={styles.profileRow}>
+                      <span className={styles.profileLabel}>Phone:</span>
+                      <span className={styles.profileValue}>{patientProfile?.phoneNumber || 'Not provided'}</span>
+                    </div>
+                    <div className={styles.profileRow}>
+                      <span className={styles.profileLabel}>Date of Birth:</span>
+                      <span className={styles.profileValue}>
+                        {patientProfile?.dateOfBirth ? formatDate(patientProfile.dateOfBirth) : 'Not provided'}
+                      </span>
+                    </div>
+                    <div className={styles.profileRow}>
+                      <span className={styles.profileLabel}>Gender:</span>
+                      <span className={styles.profileValue}>{patientProfile?.gender || 'Not provided'}</span>
+                    </div>
+                  </div>
+                  
+                  <Link href="/profile" className={styles.editProfileButton}>
+                    Edit Profile
+                  </Link>
+                </div>
               </div>
-            ) : error ? (
-              <div className={styles.errorContainer}>
-                <p>{error}</p>
-                <button 
-                  onClick={() => window.location.reload()} 
-                  className={styles.retryButton}
-                >
-                  Retry
-                </button>
-              </div>
-            ) : (
-              renderTabContent()
-            )}
+            </div>
           </div>
         </main>
       </div>
