@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Disallow access to API routes
+Disallow: /api/
+
+# Sitemap (replace with your actual domain in production)
+Sitemap: https://yourhealthcareapp.com/sitemap.xml

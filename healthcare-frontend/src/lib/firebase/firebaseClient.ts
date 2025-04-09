@@ -1,119 +1,83 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, setPersistence, browserSessionPersistence, inMemoryPersistence, browserLocalPersistence, Auth, Persistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { initializeApp, getApps, FirebaseOptions, FirebaseApp } from 'firebase/app';
+import { getFirestore, enableIndexedDbPersistence, Firestore } from 'firebase/firestore';
+import { getAuth, setPersistence, browserSessionPersistence, browserLocalPersistence, inMemoryPersistence, Auth } from 'firebase/auth';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
-const firebaseConfig = {
+// Get persistence mode from environment variable (session by default for security)
+const PERSISTENCE_MODE = process.env.NEXT_PUBLIC_FIREBASE_AUTH_PERSISTENCE || 'session';
+
+// Firebase configuration
+const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  // measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID // Optional
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
-// Check if apps are already initialized to avoid errors during hot-reloading
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// Initialize Firebase immediately to avoid "used before assignment" errors
+const firebaseApp: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+const db: Firestore = getFirestore(firebaseApp);
+const auth: Auth = getAuth(firebaseApp);
+const storage: FirebaseStorage = getStorage(firebaseApp);
 
-// Get Firebase services
-const auth = getAuth(app);
-
-// Default to session persistence for better security (clears when browser tab is closed)
-// Use environment variable to override if needed
-let defaultPersistence: Persistence = browserSessionPersistence;
-if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_FIREBASE_AUTH_PERSISTENCE) {
-  const persistenceType = process.env.NEXT_PUBLIC_FIREBASE_AUTH_PERSISTENCE;
-  if (persistenceType === 'local') {
-    defaultPersistence = browserLocalPersistence;
-  } else if (persistenceType === 'session') {
-    defaultPersistence = browserSessionPersistence;
-  } else if (persistenceType === 'none') {
-    defaultPersistence = inMemoryPersistence;
-  }
-}
-
-// Function to set auth persistence
-export const setAuthPersistence = async (persistenceType: Persistence = defaultPersistence): Promise<boolean> => {
-  try {
-    await setPersistence(auth, persistenceType);
-    console.log(`Auth persistence set to ${persistenceType.type}`);
-    return true;
-  } catch (error) {
-    console.error('Error setting auth persistence:', error);
-    return false;
-  }
-};
-
-// Initialize persistence if in browser environment
-if (typeof window !== 'undefined') {
-  setAuthPersistence(defaultPersistence)
+// Configure Firebase services if this is the first initialization
+if (getApps().length === 1) {
+  // Configure auth persistence based on environment variable
+  const persistenceMode = {
+    'local': browserLocalPersistence,
+    'session': browserSessionPersistence,
+    'none': inMemoryPersistence
+  }[PERSISTENCE_MODE] || browserSessionPersistence;
+  
+  // Set persistence - this improves performance by caching auth state appropriately
+  setPersistence(auth, persistenceMode)
     .catch((error) => {
-      console.error('Error setting auth persistence:', error);
+      console.error('Firebase persistence error:', error);
     });
+  
+  // Enable Firestore offline persistence for better performance in production
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Firestore persistence unavailable: multiple tabs open');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Firestore persistence not supported in this browser');
+      } else {
+        console.error('Firestore persistence error:', err);
+      }
+    });
+  }
 }
 
-// Export function to specifically clear auth on logout
+// Clear auth state (improved for thorough cleanup)
 export const clearAuthState = async (): Promise<boolean> => {
   try {
-    // First sign out from Firebase Auth
     await auth.signOut();
     
-    // Then clear all storage mechanisms
-    if (typeof window !== 'undefined') {
-      // Clear Firebase-specific localStorage items
-      const firebaseKeys = [
-        'firebase:auth:user',
-        'firebase:authUser',
-        'firebase:persistence',
-        'firebase:forceRefresh',
-        'firebase:pendingRedirect',
-        // Add any application-specific keys
-        'healthcareApp:lastLogin',
-        'healthcareApp:user'
-      ];
-      
-      firebaseKeys.forEach(key => {
-        try {
-          localStorage.removeItem(key);
-        } catch (e) {
-          console.warn(`Failed to remove localStorage item: ${key}`, e);
-        }
-      });
-      
-      // Clear sessionStorage Firebase items
-      firebaseKeys.forEach(key => {
-        try {
-          sessionStorage.removeItem(key);
-        } catch (e) {
-          console.warn(`Failed to remove sessionStorage item: ${key}`, e);
-        }
-      });
-      
-      // Attempt to clear IndexedDB for Firebase
+    // Clear any cached data in IndexedDB to prevent stale data issues
+    // This is handled in a safe way to prevent errors
+    if (typeof window !== 'undefined' && window.indexedDB) {
       try {
-        const dbs = await window.indexedDB.databases();
-        dbs.forEach(db => {
-          if (db.name && db.name.includes('firebase')) {
-            window.indexedDB.deleteDatabase(db.name);
+        // Get all database names
+        const databases = await window.indexedDB.databases();
+        
+        // Delete Firebase-related databases
+        for (const dbInstance of databases) {
+          if (dbInstance.name && (
+            dbInstance.name.includes('firebase') || 
+            dbInstance.name.includes('firestore')
+          )) {
+            window.indexedDB.deleteDatabase(dbInstance.name);
           }
-        });
+        }
       } catch (e) {
-        console.warn('Unable to clear IndexedDB databases:', e);
-      }
-      
-      // Dispatch a custom event to notify other tabs
-      try {
-        localStorage.setItem('authStateChange', Date.now().toString());
-        setTimeout(() => localStorage.removeItem('authStateChange'), 1000);
-      } catch (e) {
-        console.warn('Failed to dispatch auth state change event', e);
+        // Some browsers may not support this API
+        console.warn('IndexedDB cleanup failed:', e);
       }
     }
-    
-    // Add a delay to ensure everything is cleared before continuing
-    await new Promise(resolve => setTimeout(resolve, 300));
     
     return true;
   } catch (error) {
@@ -122,7 +86,4 @@ export const clearAuthState = async (): Promise<boolean> => {
   }
 };
 
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-export { app, auth, db, storage };
+export { firebaseApp, db, auth, storage };

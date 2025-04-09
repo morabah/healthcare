@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -12,6 +12,31 @@ export default function Navigation() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+
+  // Prefetch common routes to improve navigation performance
+  useEffect(() => {
+    // Only prefetch if there's a user logged in to avoid unnecessary prefetching
+    if (user) {
+      // Prefetch based on user role for faster dashboard access
+      if (userData?.role === 'doctor') {
+        router.prefetch('/doctor-dashboard');
+        router.prefetch('/doctor-profile');
+        router.prefetch('/appointments');
+      } else if (userData?.role === 'patient') {
+        router.prefetch('/patient-dashboard');
+        router.prefetch('/patient-profile');
+        router.prefetch('/book-appointment');
+      }
+      
+      // Common routes for all users
+      router.prefetch('/dashboard');
+      router.prefetch('/settings');
+    } else {
+      // For logged out users, prefetch login/signup pages
+      router.prefetch('/login');
+      router.prefetch('/signup');
+    }
+  }, [router, user, userData?.role]);
 
   // Enhanced logout handler that uses the AuthContext directly
   const handleLogout = async () => {
