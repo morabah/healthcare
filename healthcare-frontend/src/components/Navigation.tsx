@@ -7,12 +7,12 @@ import { useAuth } from '@/context/AuthContext';
 import styles from './Navigation.module.css';
 
 export default function Navigation() {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      await logout();
     } catch (error) {
       console.error('Logout error:', error);
     }

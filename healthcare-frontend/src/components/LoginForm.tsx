@@ -2,56 +2,102 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth, UserRole } from '@/context/AuthContext';
 import styles from './LoginForm.module.css';
+import RoleSelector from './RoleSelector';
 
 type FormMode = 'login' | 'signup' | 'reset';
 
 export default function LoginForm() {
-  const router = useRouter();
-  const { user, error: authError, signIn, signUp, signInWithGoogle, resetPassword, clearError } = useAuth();
+  const { user, error: authError, login, signUp, signInWithGoogle, resetPassword, setError: setAuthError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
+  const [role, setRole] = useState<UserRole>('patient');
   const [mode, setMode] = useState<FormMode>('login');
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [resetSent, setResetSent] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
 
   // Handle auth context errors
   useEffect(() => {
     if (authError) {
       setError(authError);
-      clearError();
     }
-  }, [authError, clearError]);
+  }, [authError]);
 
-  // Redirect if user is logged in
+  // Clear errors when component unmounts
   useEffect(() => {
-    if (user) {
-      router.push('/');
-    }
-  }, [user, router]);
+    return () => {
+      setAuthError(null);
+    };
+  }, [setAuthError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    
+    if (forgotPassword) {
+      handlePasswordReset();
+      return;
+    }
+    
+    if (mode === 'signup') {
+      if (password !== confirmPassword) {
+        setError("Passwords don't match");
+        return;
+      }
+      
+      if (password.length < 6) {
+        setError("Password should be at least 6 characters");
+        return;
+      }
+      
+      if (!name.trim()) {
+        setError("Please enter your name");
+        return;
+      }
+    }
+    
     setLoading(true);
     
     try {
       if (mode === 'login') {
-        await signIn(email, password);
+        await login(email, password);
       } else if (mode === 'signup') {
-        await signUp(email, password);
+        await signUp(email, password, name, role);
       } else if (mode === 'reset') {
         await resetPassword(email);
         setResetSent(true);
       }
-      
-      // Clear form on success
       if (mode !== 'reset') {
         setEmail('');
         setPassword('');
+        setConfirmPassword('');
+        setName('');
       }
+    } catch (err) {
+      // Error is already set in the auth context
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      setError("Please enter your email address");
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      await resetPassword(email);
+      setError(null);
+      alert("Password reset email sent. Check your inbox.");
+      setForgotPassword(false);
     } catch (err) {
       // Error is already set in the auth context
     } finally {
@@ -84,6 +130,12 @@ export default function LoginForm() {
     setMode(newMode);
     setError(null);
     setResetSent(false);
+    setForgotPassword(false);
+  };
+
+  const toggleForgotPassword = () => {
+    setForgotPassword(!forgotPassword);
+    setError(null);
   };
 
   // Password reset form
@@ -171,6 +223,20 @@ export default function LoginForm() {
       </div>
 
       <form onSubmit={handleSubmit} className={styles.form}>
+        {mode === 'signup' && (
+          <div className={styles.formGroup}>
+            <label htmlFor="name" className={styles.label}>Full Name</label>
+            <input
+              type="text"
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={styles.input}
+              required
+            />
+          </div>
+        )}
+        
         <div className={styles.formGroup}>
           <label htmlFor="email" className={styles.label}>Email</label>
           <input
@@ -185,24 +251,56 @@ export default function LoginForm() {
           />
         </div>
 
-        <div className={styles.formGroup}>
-          <label htmlFor="password" className={styles.label}>Password</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={styles.input}
-            placeholder="••••••••"
-            required
-            disabled={loading}
-          />
-        </div>
+        {!forgotPassword && (
+          <div className={styles.formGroup}>
+            <label htmlFor="password" className={styles.label}>Password</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={styles.input}
+              placeholder="••••••••"
+              required
+              disabled={loading}
+            />
+          </div>
+        )}
+        
+        {mode === 'signup' && (
+          <>
+            <div className={styles.formGroup}>
+              <label htmlFor="confirmPassword" className={styles.label}>Confirm Password</label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={styles.input}
+                placeholder="••••••••"
+                required
+                disabled={loading}
+              />
+            </div>
+            
+            <RoleSelector selectedRole={role} onRoleChange={setRole} />
+          </>
+        )}
+
+        {mode === 'login' && !forgotPassword && (
+          <button
+            type="button"
+            onClick={() => toggleMode('reset')}
+            className={styles.forgotPasswordLink}
+          >
+            Forgot password?
+          </button>
+        )}
 
         {mode === 'login' && (
           <button
             type="button"
-            onClick={() => toggleMode('reset')}
+            onClick={toggleForgotPassword}
             className={styles.forgotPasswordLink}
           >
             Forgot password?
@@ -247,6 +345,17 @@ export default function LoginForm() {
           </svg>
           Continue with Google
         </button>
+        
+        <p className={styles.toggleText}>
+          {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
+          <button
+            type="button"
+            onClick={() => toggleMode(mode === 'login' ? 'signup' : 'login')}
+            className={styles.toggleButton}
+          >
+            {mode === 'login' ? 'Sign Up' : 'Sign In'}
+          </button>
+        </p>
       </form>
     </div>
   );
